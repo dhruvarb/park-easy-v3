@@ -17,25 +17,17 @@ const checkSchema = async () => {
         const userCols = await client.query(`
       SELECT column_name, data_type 
       FROM information_schema.columns 
-      WHERE table_name = 'users';
+      WHERE table_name = 'users' AND table_schema = 'public';
     `);
-        console.log("Users table columns:", userCols.rows.map(r => r.column_name));
+        console.log("Public Users table columns:", userCols.rows.map(r => r.column_name));
 
         // Check parking_lots table columns
         const lotCols = await client.query(`
       SELECT column_name, data_type 
       FROM information_schema.columns 
-      WHERE table_name = 'parking_lots';
+      WHERE table_name = 'parking_lots' AND table_schema = 'public';
     `);
-        console.log("Parking_lots table columns:", lotCols.rows.map(r => r.column_name));
-
-        // Check notifications table columns
-        const notifCols = await client.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'notifications';
-    `);
-        console.log("Notifications table columns:", notifCols.rows.map(r => r.column_name));
+        console.log("Public Parking_lots table columns:", lotCols.rows.map(r => r.column_name));
 
         client.release();
     } catch (err) {
