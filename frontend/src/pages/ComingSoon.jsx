@@ -1,6 +1,6 @@
 // src/pages/ComingSoon.jsx
 import { Link } from "react-router-dom";
-import NavBar from "../components/NavBar";
+import NavBar from "../components/Navbar";
 
 export default function ComingSoon() {
     return (

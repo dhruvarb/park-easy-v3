@@ -1,7 +1,7 @@
 // src/pages/AuthScreen.jsx
 import { useMemo, useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import NavBar from '../components/NavBar';
+import NavBar from '../components/Navbar';
 import { authApi } from '../services/api.js';
 
 const fields = {

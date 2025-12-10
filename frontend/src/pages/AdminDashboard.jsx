@@ -1,7 +1,7 @@
 // src/pages/AdminDashboard.jsx
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import NavBar from "../components/NavBar";
+import NavBar from "../components/Navbar";
 import api, { adminApi } from "../services/api";
 import NotificationDropdown from "../components/NotificationDropdown";
 import AdminLotDetailsModal from "../components/AdminLotDetailsModal";
