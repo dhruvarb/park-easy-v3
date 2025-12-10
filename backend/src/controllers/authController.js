@@ -51,6 +51,7 @@ export const signup = async (req, res, next) => {
 
     return res.status(201).json({ token, user });
   } catch (error) {
+    console.error("Signup error:", error);
     if (error instanceof z.ZodError) {
       return res
         .status(400)
