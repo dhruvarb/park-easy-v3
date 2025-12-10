@@ -16,6 +16,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 app.use(cors());
+app.options('*', cors());
 app.use(express.json());
 app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
 
