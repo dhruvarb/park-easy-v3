@@ -1,10 +1,6 @@
-import app from '../src/app.js';
-
 const allowCors = (fn) => async (req, res) => {
     res.setHeader('Access-Control-Allow-Credentials', true)
     res.setHeader('Access-Control-Allow-Origin', '*')
-    // another common pattern
-    // res.setHeader('Access-Control-Allow-Origin', req.headers.origin);
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT')
     res.setHeader(
         'Access-Control-Allow-Headers',
@@ -17,4 +13,10 @@ const allowCors = (fn) => async (req, res) => {
     return await fn(req, res)
 }
 
-export default allowCors(app);
+const handler = async (req, res) => {
+    // Lazy load the app to prevent cold-start crashes affecting CORS
+    const app = (await import('../src/app.js')).default;
+    return app(req, res);
+}
+
+export default allowCors(handler);
