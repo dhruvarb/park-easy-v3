@@ -380,6 +380,65 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleEditLot = (lot) => {
+    // Reconstruct pricing object
+    const p = {};
+    if (lot.pricing && Array.isArray(lot.pricing)) {
+      lot.pricing.forEach(pr => {
+        const type = VEHICLE_TYPES.find(vt => vt.db === pr.vehicleType || vt.id === pr.vehicleType);
+        if (type) {
+          p[type.id] = {
+            hourly: pr.hourly || "",
+            daily: pr.daily || "",
+            monthly: pr.monthly || ""
+          };
+        }
+      });
+    }
+
+    // Reconstruct capacity object
+    const c = {};
+    if (lot.capacityBreakdown) {
+      Object.entries(lot.capacityBreakdown).forEach(([key, val]) => {
+        const type = VEHICLE_TYPES.find(vt => vt.db === key);
+        if (type) c[type.id] = val;
+      });
+    }
+
+    // Reconstruct vehicleTypes booleans
+    const vt = { ...newLot.vehicleTypes };
+    // Set all to false first? Or keep defaults? Better to reset.
+    Object.keys(vt).forEach(k => vt[k] = false);
+
+    // Set true based on capacity or pricing existence
+    Object.keys(c).forEach(k => vt[k] = true);
+    Object.keys(p).forEach(k => vt[k] = true);
+
+    // Reconstruct amenities
+    const am = {
+      covered: lot.amenities.includes("Covered Parking"),
+      evCharging: lot.amenities.includes("EV Charging"),
+      cctv: lot.amenities.includes("CCTV / Security"),
+      access247: lot.amenities.includes("24/7 Access"),
+    };
+
+    setNewLot({
+      lotId: lot.id, // Important for update
+      name: lot.name,
+      address: lot.address,
+      description: "",
+      city: lot.city || localStorage.getItem("pe_city") || "Hubli",
+      pricing: p,
+      capacity: c,
+      latitude: lot.latitude,
+      longitude: lot.longitude,
+      vehicleTypes: vt,
+      amenities: am,
+      images: [], // Images not editable yet in this simple form, or just add new ones
+    });
+    setShowAddModal(true);
+  };
+
   const menuItems = [
     {
       name: "Dashboard", icon: (
@@ -405,7 +464,19 @@ export default function AdminDashboard() {
     },
     {
       name: "Add New Spot", action: () => {
-        setNewLot(prev => ({ ...prev, city: localStorage.getItem("pe_city") || "Hubli" }));
+        setNewLot({
+          name: "",
+          address: "",
+          description: "",
+          pricing: {},
+          capacity: {},
+          latitude: "",
+          longitude: "",
+          vehicleTypes: { bike: false, car: false, suv: false, bus: false, evBike: false, evCar: false, evSuv: false },
+          amenities: { covered: false, evCharging: false, cctv: false, access247: false },
+          images: [],
+          city: localStorage.getItem("pe_city") || "Hubli"
+        });
         setShowAddModal(true);
       }, highlight: true, icon: (
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -600,6 +671,18 @@ export default function AdminDashboard() {
                             <span className="text-xs px-2 py-1 rounded-full bg-brandSky/10 text-brandSky border border-brandSky/20 font-medium">
                               {lot.city}
                             </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditLot(lot);
+                              }}
+                              className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
+                              title="Edit Spot"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.691 1.127l-2.685.8.8-2.685a4.5 4.5 0 011.127-1.691L16.862 4.487zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                              </svg>
+                            </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -866,8 +949,10 @@ export default function AdminDashboard() {
           <div className="flex min-h-full items-center justify-center p-4">
             <div className="bg-white rounded-3xl p-8 w-full max-w-2xl space-y-6 shadow-2xl my-8 relative">
               <div className="space-y-1">
-                <h2 className="text-2xl font-bold text-gray-900">Add New Parking Spot</h2>
-                <p className="text-gray-500">Fill in the details below to list a new parking spot</p>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {newLot.lotId ? "Modify Parking Spot" : "Add New Parking Spot"}
+                </h2>
+                <p className="text-gray-500">Fill in the details below to {newLot.lotId ? "update the" : "list a new"} parking spot</p>
               </div>
 
               <form onSubmit={handleAddLot} className="space-y-6">
