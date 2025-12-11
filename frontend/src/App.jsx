@@ -11,6 +11,7 @@ import UserBookings from './pages/UserBookings';
 
 import UserFavorites from "./pages/UserFavorites";
 import ParkingDetails from "./pages/ParkingDetails";
+import AboutUs from "./pages/AboutUs";
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/bookings" element={<UserBookings />} />
         <Route path="/favorites" element={<UserFavorites />} />
         <Route path="/parking/:id" element={<ParkingDetails />} />
+        <Route path="/about" element={<AboutUs />} />
         <Route path="/dashboard" element={<Navigate to="/user" replace />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin/profile" element={<AdminProfile />} />
