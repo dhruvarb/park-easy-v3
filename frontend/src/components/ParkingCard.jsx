@@ -48,7 +48,7 @@ export default function ParkingCard({ slot, onBook, isFavorite, onToggleFavorite
           className="h-36 w-full cursor-pointer overflow-hidden"
         >
           <img
-            src={`${API_BASE}${slot.images[0]}`}
+            src={slot.images[0].startsWith('http') ? slot.images[0] : `${API_BASE}${slot.images[0]}`}
             alt={slot.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
