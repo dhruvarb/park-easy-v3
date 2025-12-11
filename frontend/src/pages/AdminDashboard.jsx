@@ -404,7 +404,10 @@ export default function AdminDashboard() {
       )
     },
     {
-      name: "Add New Spot", action: () => setShowAddModal(true), highlight: true, icon: (
+      name: "Add New Spot", action: () => {
+        setNewLot(prev => ({ ...prev, city: localStorage.getItem("pe_city") || "Hubli" }));
+        setShowAddModal(true);
+      }, highlight: true, icon: (
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -879,6 +882,17 @@ export default function AdminDashboard() {
                     value={newLot.name}
                     onChange={(e) => setNewLot({ ...newLot, name: e.target.value })}
                     required
+                  />
+                </div>
+
+                {/* City (Read-Only) */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-900">City</label>
+                  <input
+                    type="text"
+                    disabled
+                    className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed"
+                    value={localStorage.getItem("pe_city") || "Hubli"}
                   />
                 </div>
 
