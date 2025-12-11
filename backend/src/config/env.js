@@ -16,6 +16,8 @@ const env = {
   dbSSL: process.env.DB_SSL === "true",
   jwtSecret: process.env.JWT_SECRET,
   tokenTtlHours: Number(process.env.TOKEN_TTL_HOURS || 12),
+  supabaseUrl: process.env.SUPABASE_URL,
+  supabaseKey: process.env.SUPABASE_KEY,
 };
 
 export default env;
