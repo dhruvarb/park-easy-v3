@@ -338,7 +338,7 @@ export default function AdminDashboard() {
       const formData = new FormData();
       formData.append("name", newLot.name);
       formData.append("address", newLot.address);
-      formData.append("city", "Hubli");
+      formData.append("city", localStorage.getItem("pe_city") || "Hubli");
       formData.append("latitude", newLot.latitude);
       formData.append("longitude", newLot.longitude);
       formData.append("hasEv", String(newLot.amenities.evCharging || newLot.vehicleTypes.evBike || newLot.vehicleTypes.evCar || newLot.vehicleTypes.evSuv));
@@ -495,7 +495,9 @@ export default function AdminDashboard() {
             />
             <div className="hidden md:block text-left">
               <p className="text-sm font-medium text-white">{user.name || 'Admin User'}</p>
-              <p className="text-xs text-gray-400 capitalize">{user.role || 'Admin'}</p>
+              <p className="text-xs text-gray-400 capitalize">
+                {user.role || 'Admin'} &bull; {localStorage.getItem("pe_city") || "hubli"}
+              </p>
             </div>
           </button>
 
