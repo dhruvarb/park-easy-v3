@@ -23,6 +23,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [selectedLot, setSelectedLot] = useState(null);
   const fileInputRef = useRef(null);
+  const API_BASE = import.meta.env.VITE_API_BASE?.replace(/\/$/, '') || 'http://localhost:5000';
 
   // Header State
   const [user, setUser] = useState(JSON.parse(localStorage.getItem("pe_user") || "{}"));
@@ -663,54 +664,80 @@ export default function AdminDashboard() {
                       <div
                         key={lot.id}
                         onClick={() => setSelectedLot(lot)}
-                        className="p-4 rounded-xl border border-white/5 hover:border-brandSky/30 hover:bg-white/5 transition-all group cursor-pointer"
+                      <div
+                        key={lot.id}
+                        onClick={() => setSelectedLot(lot)}
+                        className="p-4 rounded-xl border border-white/5 hover:border-brandSky/30 hover:bg-white/5 transition-all group cursor-pointer flex gap-4"
                       >
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-semibold text-lg text-white group-hover:text-brandSky transition-colors">{lot.name}</h3>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs px-2 py-1 rounded-full bg-brandSky/10 text-brandSky border border-brandSky/20 font-medium">
-                              {lot.city}
-                            </span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditLot(lot);
-                              }}
-                              className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
-                              title="Edit Spot"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.691 1.127l-2.685.8.8-2.685a4.5 4.5 0 011.127-1.691L16.862 4.487zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        {/* Image Thumbnail */}
+                        <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-white/5 border border-white/10">
+                          {lot.images && lot.images.length > 0 ? (
+                            <img
+                              src={lot.images[0].startsWith('http') ? lot.images[0] : `${API_BASE}${lot.images[0]}`}
+                              alt={lot.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-500">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                               </svg>
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteLot(lot.id);
-                              }}
-                              className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-                              title="Delete Spot"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-400 mb-3">{lot.address}</p>
-                        <div className="flex flex-wrap gap-2 text-xs text-gray-400">
-                          <span className="flex items-center gap-1.5 bg-brandNight px-2 py-1 rounded-md border border-white/10">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            Capacity: {lot.total_capacity}
-                          </span>
-                          {lot.has_ev && (
-                            <span className="flex items-center gap-1.5 bg-brandNight px-2 py-1 rounded-md border border-white/10">
-                              <span className="w-1.5 h-1.5 rounded-full bg-brandSky"></span>
-                              EV Support
-                            </span>
+                            </div>
                           )}
                         </div>
+
+                        {/* Content */}
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start mb-2">
+                            <h3 className="font-semibold text-lg text-white group-hover:text-brandSky transition-colors">{lot.name}</h3>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs px-2 py-1 rounded-full bg-brandSky/10 text-brandSky border border-brandSky/20 font-medium h-fit">
+                                {lot.city}
+                              </span>
+                              <div className="flex gap-1 ml-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditLot(lot);
+                                  }}
+                                  className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                  title="Edit Spot"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.691 1.127l-2.685.8.8-2.685a4.5 4.5 0 011.127-1.691L16.862 4.487zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteLot(lot.id);
+                                  }}
+                                  className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                  title="Delete Spot"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-400 mb-3">{lot.address}</p>
+                          <div className="flex flex-wrap gap-2 text-xs text-gray-400">
+                            <span className="flex items-center gap-1.5 bg-brandNight px-2 py-1 rounded-md border border-white/10">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              Capacity: {lot.total_capacity}
+                            </span>
+                            {lot.has_ev && (
+                              <span className="flex items-center gap-1.5 bg-brandNight px-2 py-1 rounded-md border border-white/10">
+                                <span className="w-1.5 h-1.5 rounded-full bg-brandSky"></span>
+                                EV Support
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
+
                     ))
                   ) : (
                     <div className="text-center py-12 bg-white/5 rounded-xl border border-dashed border-white/10">
@@ -940,421 +967,425 @@ export default function AdminDashboard() {
               </section>
             ) : null}
           </div>
-        </main>
-      </div>
+        </main >
+      </div >
 
       {/* Add Lot Modal - Redesigned */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm">
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white rounded-3xl p-8 w-full max-w-2xl space-y-6 shadow-2xl my-8 relative">
-              <div className="space-y-1">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {newLot.lotId ? "Modify Parking Spot" : "Add New Parking Spot"}
-                </h2>
-                <p className="text-gray-500">Fill in the details below to {newLot.lotId ? "update the" : "list a new"} parking spot</p>
-              </div>
-
-              <form onSubmit={handleAddLot} className="space-y-6">
-
-                {/* Spot Name */}
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-900">Spot Name *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., Downtown Spot A1"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    value={newLot.name}
-                    onChange={(e) => setNewLot({ ...newLot, name: e.target.value })}
-                    required
-                  />
+      {
+        showAddModal && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <div className="bg-white rounded-3xl p-8 w-full max-w-2xl space-y-6 shadow-2xl my-8 relative">
+                <div className="space-y-1">
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {newLot.lotId ? "Modify Parking Spot" : "Add New Parking Spot"}
+                  </h2>
+                  <p className="text-gray-500">Fill in the details below to {newLot.lotId ? "update the" : "list a new"} parking spot</p>
                 </div>
 
-                {/* City (Read-Only) */}
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-900">City</label>
-                  <input
-                    type="text"
-                    disabled
-                    className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed"
-                    value={localStorage.getItem("pe_city") || "Hubli"}
-                  />
-                </div>
+                <form onSubmit={handleAddLot} className="space-y-6">
 
-                {/* Location */}
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-900">Location *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., 123 Main Street, Downtown"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    value={newLot.address}
-                    onChange={(e) => setNewLot({ ...newLot, address: e.target.value })}
-                    required
-                  />
-                </div>
-
-                {/* Coordinates */}
-                <div className="grid grid-cols-2 gap-4">
+                  {/* Spot Name */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-900">Latitude *</label>
+                    <label className="text-sm font-semibold text-gray-900">Spot Name *</label>
                     <input
                       type="text"
-                      placeholder="e.g., 12.9716"
+                      placeholder="e.g., Downtown Spot A1"
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                      value={newLot.latitude}
-                      onChange={(e) => setNewLot({ ...newLot, latitude: e.target.value })}
+                      value={newLot.name}
+                      onChange={(e) => setNewLot({ ...newLot, name: e.target.value })}
                       required
                     />
                   </div>
+
+                  {/* City (Read-Only) */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-900">Longitude *</label>
+                    <label className="text-sm font-semibold text-gray-900">City</label>
                     <input
                       type="text"
-                      placeholder="e.g., 77.5946"
+                      disabled
+                      className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed"
+                      value={localStorage.getItem("pe_city") || "Hubli"}
+                    />
+                  </div>
+
+                  {/* Location */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-900">Location *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g., 123 Main Street, Downtown"
                       className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                      value={newLot.longitude}
-                      onChange={(e) => setNewLot({ ...newLot, longitude: e.target.value })}
+                      value={newLot.address}
+                      onChange={(e) => setNewLot({ ...newLot, address: e.target.value })}
                       required
                     />
                   </div>
-                </div>
 
-                {/* Location Map Helper Link */}
-                <div className="text-right -mt-4">
-                  <a
-                    href="https://www.google.com/maps"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-blue-600 hover:underline"
-                  >
-                    Open Google Maps to find coordinates
-                  </a>
-                </div>
-
-                {/* Allowed Vehicle Types */}
-                <div className="space-y-3">
-                  <label className="text-sm font-semibold text-gray-900">Allowed Vehicle Types *</label>
-                  <p className="text-xs text-gray-500 -mt-2 mb-2">Select which types of vehicles can park in this spot</p>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {/* Regular Vehicles */}
-                    <div className="p-4 rounded-xl border border-gray-200 space-y-3">
-                      <h4 className="text-sm font-medium text-gray-700 text-blue-900">Regular Vehicles</h4>
-                      <div className="space-y-2">
-                        {VEHICLE_TYPES.filter(t => t.group === 'regular').map(type => (
-                          <label key={type.id} className="flex items-center gap-3 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              checked={newLot.vehicleTypes[type.id]}
-                              onChange={(e) => {
-                                const isChecked = e.target.checked;
-                                setNewLot(prev => ({
-                                  ...prev,
-                                  vehicleTypes: { ...prev.vehicleTypes, [type.id]: isChecked },
-                                  // Initialize pricing if checked, else keep it (or remove it, but keeping is safer)
-                                  pricing: {
-                                    ...prev.pricing,
-                                    [type.id]: isChecked ? (prev.pricing[type.id] || { hourly: "", daily: "", monthly: "" }) : prev.pricing[type.id]
-                                  }
-                                }));
-                              }}
-                            />
-                            <span className="text-sm text-gray-700">{type.label}</span>
-                          </label>
-                        ))}
-                      </div>
+                  {/* Coordinates */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-900">Latitude *</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 12.9716"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        value={newLot.latitude}
+                        onChange={(e) => setNewLot({ ...newLot, latitude: e.target.value })}
+                        required
+                      />
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-900">Longitude *</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 77.5946"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        value={newLot.longitude}
+                        onChange={(e) => setNewLot({ ...newLot, longitude: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
 
-                    {/* EV Vehicles */}
-                    <div className="p-4 rounded-xl border border-green-100 bg-green-50/30 space-y-3">
-                      <h4 className="text-sm font-medium text-green-700 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                        Electric Vehicles (EV)
-                      </h4>
-                      <div className="space-y-2">
-                        {VEHICLE_TYPES.filter(t => t.group === 'ev').map(type => (
-                          <label key={type.id} className="flex items-center gap-3 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              className="w-5 h-5 rounded border-green-300 text-green-600 focus:ring-green-500"
-                              checked={newLot.vehicleTypes[type.id]}
-                              onChange={(e) => {
-                                const isChecked = e.target.checked;
-                                setNewLot(prev => ({
-                                  ...prev,
-                                  vehicleTypes: { ...prev.vehicleTypes, [type.id]: isChecked },
-                                  pricing: {
-                                    ...prev.pricing,
-                                    [type.id]: isChecked ? (prev.pricing[type.id] || { hourly: "", daily: "", monthly: "" }) : prev.pricing[type.id]
-                                  }
-                                }));
-                              }}
-                            />
-                            <span className="text-sm text-gray-700">{type.label}</span>
-                          </label>
-                        ))}
+                  {/* Location Map Helper Link */}
+                  <div className="text-right -mt-4">
+                    <a
+                      href="https://www.google.com/maps"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Open Google Maps to find coordinates
+                    </a>
+                  </div>
+
+                  {/* Allowed Vehicle Types */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-semibold text-gray-900">Allowed Vehicle Types *</label>
+                    <p className="text-xs text-gray-500 -mt-2 mb-2">Select which types of vehicles can park in this spot</p>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {/* Regular Vehicles */}
+                      <div className="p-4 rounded-xl border border-gray-200 space-y-3">
+                        <h4 className="text-sm font-medium text-gray-700 text-blue-900">Regular Vehicles</h4>
+                        <div className="space-y-2">
+                          {VEHICLE_TYPES.filter(t => t.group === 'regular').map(type => (
+                            <label key={type.id} className="flex items-center gap-3 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                checked={newLot.vehicleTypes[type.id]}
+                                onChange={(e) => {
+                                  const isChecked = e.target.checked;
+                                  setNewLot(prev => ({
+                                    ...prev,
+                                    vehicleTypes: { ...prev.vehicleTypes, [type.id]: isChecked },
+                                    // Initialize pricing if checked, else keep it (or remove it, but keeping is safer)
+                                    pricing: {
+                                      ...prev.pricing,
+                                      [type.id]: isChecked ? (prev.pricing[type.id] || { hourly: "", daily: "", monthly: "" }) : prev.pricing[type.id]
+                                    }
+                                  }));
+                                }}
+                              />
+                              <span className="text-sm text-gray-700">{type.label}</span>
+                            </label>
+                          ))}
+                        </div>
                       </div>
-                      {/* EV Note */}
-                      <div className="mt-2 p-2 bg-yellow-50 border border-yellow-100 rounded-lg flex items-start gap-2">
-                        <span className="text-yellow-600 text-xs">💡</span>
-                        <p className="text-xs text-yellow-700">
-                          Consider enabling "EV Charging" in features below
-                        </p>
+
+                      {/* EV Vehicles */}
+                      <div className="p-4 rounded-xl border border-green-100 bg-green-50/30 space-y-3">
+                        <h4 className="text-sm font-medium text-green-700 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                          Electric Vehicles (EV)
+                        </h4>
+                        <div className="space-y-2">
+                          {VEHICLE_TYPES.filter(t => t.group === 'ev').map(type => (
+                            <label key={type.id} className="flex items-center gap-3 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="w-5 h-5 rounded border-green-300 text-green-600 focus:ring-green-500"
+                                checked={newLot.vehicleTypes[type.id]}
+                                onChange={(e) => {
+                                  const isChecked = e.target.checked;
+                                  setNewLot(prev => ({
+                                    ...prev,
+                                    vehicleTypes: { ...prev.vehicleTypes, [type.id]: isChecked },
+                                    pricing: {
+                                      ...prev.pricing,
+                                      [type.id]: isChecked ? (prev.pricing[type.id] || { hourly: "", daily: "", monthly: "" }) : prev.pricing[type.id]
+                                    }
+                                  }));
+                                }}
+                              />
+                              <span className="text-sm text-gray-700">{type.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                        {/* EV Note */}
+                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-100 rounded-lg flex items-start gap-2">
+                          <span className="text-yellow-600 text-xs">💡</span>
+                          <p className="text-xs text-yellow-700">
+                            Consider enabling "EV Charging" in features below
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Pricing for Selected Vehicle Types */}
-                <div className="space-y-4">
-                  <label className="text-sm font-semibold text-gray-900">Pricing for Selected Vehicle Types *</label>
-                  <p className="text-xs text-gray-500 -mt-3">Set pricing for each vehicle type. At least hourly pricing is required.</p>
-
-                  {VEHICLE_TYPES.filter(type => newLot.vehicleTypes[type.id]).length === 0 && (
-                    <div className="text-sm text-gray-500 italic p-4 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-center">
-                      Select vehicle types above to set pricing
-                    </div>
-                  )}
-
+                  {/* Pricing for Selected Vehicle Types */}
                   <div className="space-y-4">
-                    {VEHICLE_TYPES.filter(type => newLot.vehicleTypes[type.id]).map(type => (
-                      <div key={type.id} className={`p-4 rounded-xl border ${type.group === 'ev' ? 'border-green-100 bg-green-50/10' : 'border-gray-200 bg-white'}`}>
-                        <div className="flex items-center gap-2 mb-3">
-                          {type.group === 'ev' && <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>}
-                          <h4 className={`text-sm font-medium ${type.group === 'ev' ? 'text-green-800' : 'text-gray-900'}`}>{type.label}</h4>
-                        </div>
+                    <label className="text-sm font-semibold text-gray-900">Pricing for Selected Vehicle Types *</label>
+                    <p className="text-xs text-gray-500 -mt-3">Set pricing for each vehicle type. At least hourly pricing is required.</p>
 
-                        <div className="grid grid-cols-4 gap-4">
-                          <div className="space-y-1">
-                            <label className="text-xs text-gray-500">Capacity *</label>
-                            <input
-                              type="number"
-                              min="1"
-                              placeholder="10"
-                              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                              value={newLot.capacity[type.id] || ""}
-                              onChange={(e) => setNewLot(prev => ({
-                                ...prev,
-                                capacity: {
-                                  ...prev.capacity,
-                                  [type.id]: e.target.value
-                                }
-                              }))}
-                              required
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-xs text-gray-500">Per Hour (₹) *</label>
-                            <input
-                              type="number"
-                              min="0"
-                              placeholder="10"
-                              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                              value={newLot.pricing[type.id]?.hourly || ""}
-                              onChange={(e) => setNewLot(prev => ({
-                                ...prev,
-                                pricing: {
-                                  ...prev.pricing,
-                                  [type.id]: { ...prev.pricing[type.id], hourly: e.target.value }
-                                }
-                              }))}
-                              required
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-xs text-gray-500">Per Day (₹)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              placeholder="50"
-                              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                              value={newLot.pricing[type.id]?.daily || ""}
-                              onChange={(e) => setNewLot(prev => ({
-                                ...prev,
-                                pricing: {
-                                  ...prev.pricing,
-                                  [type.id]: { ...prev.pricing[type.id], daily: e.target.value }
-                                }
-                              }))}
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-xs text-gray-500">Per Month (₹)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              placeholder="800"
-                              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                              value={newLot.pricing[type.id]?.monthly || ""}
-                              onChange={(e) => setNewLot(prev => ({
-                                ...prev,
-                                pricing: {
-                                  ...prev.pricing,
-                                  [type.id]: { ...prev.pricing[type.id], monthly: e.target.value }
-                                }
-                              }))}
-                            />
-                          </div>
-                        </div>
+                    {VEHICLE_TYPES.filter(type => newLot.vehicleTypes[type.id]).length === 0 && (
+                      <div className="text-sm text-gray-500 italic p-4 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-center">
+                        Select vehicle types above to set pricing
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    )}
 
-                {/* Images */}
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-900">Parking Spot Images</label>
+                    <div className="space-y-4">
+                      {VEHICLE_TYPES.filter(type => newLot.vehicleTypes[type.id]).map(type => (
+                        <div key={type.id} className={`p-4 rounded-xl border ${type.group === 'ev' ? 'border-green-100 bg-green-50/10' : 'border-gray-200 bg-white'}`}>
+                          <div className="flex items-center gap-2 mb-3">
+                            {type.group === 'ev' && <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>}
+                            <h4 className={`text-sm font-medium ${type.group === 'ev' ? 'text-green-800' : 'text-gray-900'}`}>{type.label}</h4>
+                          </div>
 
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageChange}
-                    multiple
-                    accept="image/*"
-                    className="hidden"
-                  />
-
-                  {newLot.images.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {newLot.images.map((img, index) => (
-                        <div key={index} className="relative aspect-video rounded-xl overflow-hidden group border border-gray-200">
-                          <img src={img.preview} alt={`Preview ${index}`} className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                            </svg>
-                          </button>
+                          <div className="grid grid-cols-4 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-xs text-gray-500">Capacity *</label>
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="10"
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                value={newLot.capacity[type.id] || ""}
+                                onChange={(e) => setNewLot(prev => ({
+                                  ...prev,
+                                  capacity: {
+                                    ...prev.capacity,
+                                    [type.id]: e.target.value
+                                  }
+                                }))}
+                                required
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs text-gray-500">Per Hour (₹) *</label>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="10"
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                value={newLot.pricing[type.id]?.hourly || ""}
+                                onChange={(e) => setNewLot(prev => ({
+                                  ...prev,
+                                  pricing: {
+                                    ...prev.pricing,
+                                    [type.id]: { ...prev.pricing[type.id], hourly: e.target.value }
+                                  }
+                                }))}
+                                required
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs text-gray-500">Per Day (₹)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="50"
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                value={newLot.pricing[type.id]?.daily || ""}
+                                onChange={(e) => setNewLot(prev => ({
+                                  ...prev,
+                                  pricing: {
+                                    ...prev.pricing,
+                                    [type.id]: { ...prev.pricing[type.id], daily: e.target.value }
+                                  }
+                                }))}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs text-gray-500">Per Month (₹)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="800"
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                value={newLot.pricing[type.id]?.monthly || ""}
+                                onChange={(e) => setNewLot(prev => ({
+                                  ...prev,
+                                  pricing: {
+                                    ...prev.pricing,
+                                    [type.id]: { ...prev.pricing[type.id], monthly: e.target.value }
+                                  }
+                                }))}
+                              />
+                            </div>
+                          </div>
                         </div>
                       ))}
-                      <div
-                        onClick={() => fileInputRef.current.click()}
-                        className="border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all aspect-video"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-gray-400 mb-2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                        </svg>
-                        <span className="text-xs text-gray-500 font-medium">Add More</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      onClick={() => fileInputRef.current.click()}
-                      className="border-2 border-dashed border-gray-200 rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-gray-400 mb-3">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                      </svg>
-                      <p className="text-sm text-gray-600 font-medium">Click to upload images</p>
-                      <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG up to 10MB each</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Features & Amenities */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-gray-900">Features & Amenities</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Covered Parking</p>
-                        <p className="text-xs text-gray-500">Protected from weather</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={newLot.amenities.covered}
-                          onChange={(e) => setNewLot({ ...newLot, amenities: { ...newLot.amenities, covered: e.target.checked } })}
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">EV Charging</p>
-                        <p className="text-xs text-gray-500">Electric vehicle charging available</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={newLot.amenities.evCharging}
-                          onChange={(e) => setNewLot({ ...newLot, amenities: { ...newLot.amenities, evCharging: e.target.checked } })}
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Security/CCTV</p>
-                        <p className="text-xs text-gray-500">Video surveillance installed</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={newLot.amenities.cctv}
-                          onChange={(e) => setNewLot({ ...newLot, amenities: { ...newLot.amenities, cctv: e.target.checked } })}
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">24/7 Access</p>
-                        <p className="text-xs text-gray-500">Available anytime</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={newLot.amenities.access247}
-                          onChange={(e) => setNewLot({ ...newLot, amenities: { ...newLot.amenities, access247: e.target.checked } })}
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddModal(false)}
-                    className="px-6 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-medium border border-gray-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2 rounded-xl bg-[#0F172A] text-white font-bold hover:bg-[#1E293B] shadow-lg flex items-center gap-2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                    </svg>
-                    Add Parking Spot
-                  </button>
-                </div>
-              </form>
+                  {/* Images */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-900">Parking Spot Images</label>
+
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleImageChange}
+                      multiple
+                      accept="image/*"
+                      className="hidden"
+                    />
+
+                    {newLot.images.length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {newLot.images.map((img, index) => (
+                          <div key={index} className="relative aspect-video rounded-xl overflow-hidden group border border-gray-200">
+                            <img src={img.preview} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => removeImage(index)}
+                              className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                        <div
+                          onClick={() => fileInputRef.current.click()}
+                          className="border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all aspect-video"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-gray-400 mb-2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                          </svg>
+                          <span className="text-xs text-gray-500 font-medium">Add More</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => fileInputRef.current.click()}
+                        className="border-2 border-dashed border-gray-200 rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-gray-400 mb-3">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                        </svg>
+                        <p className="text-sm text-gray-600 font-medium">Click to upload images</p>
+                        <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG up to 10MB each</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Features & Amenities */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-gray-900">Features & Amenities</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Covered Parking</p>
+                          <p className="text-xs text-gray-500">Protected from weather</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={newLot.amenities.covered}
+                            onChange={(e) => setNewLot({ ...newLot, amenities: { ...newLot.amenities, covered: e.target.checked } })}
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">EV Charging</p>
+                          <p className="text-xs text-gray-500">Electric vehicle charging available</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={newLot.amenities.evCharging}
+                            onChange={(e) => setNewLot({ ...newLot, amenities: { ...newLot.amenities, evCharging: e.target.checked } })}
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Security/CCTV</p>
+                          <p className="text-xs text-gray-500">Video surveillance installed</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={newLot.amenities.cctv}
+                            onChange={(e) => setNewLot({ ...newLot, amenities: { ...newLot.amenities, cctv: e.target.checked } })}
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">24/7 Access</p>
+                          <p className="text-xs text-gray-500">Available anytime</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={newLot.amenities.access247}
+                            onChange={(e) => setNewLot({ ...newLot, amenities: { ...newLot.amenities, access247: e.target.checked } })}
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddModal(false)}
+                      className="px-6 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-medium border border-gray-200"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2 rounded-xl bg-[#0F172A] text-white font-bold hover:bg-[#1E293B] shadow-lg flex items-center gap-2"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                      </svg>
+                      Add Parking Spot
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
       {/* View Lot Details Modal */}
-      {selectedLot && (
-        <AdminLotDetailsModal
-          lot={selectedLot}
-          onClose={() => setSelectedLot(null)}
-        />
-      )}
+      {
+        selectedLot && (
+          <AdminLotDetailsModal
+            lot={selectedLot}
+            onClose={() => setSelectedLot(null)}
+          />
+        )
+      }
     </>
   );
 }
