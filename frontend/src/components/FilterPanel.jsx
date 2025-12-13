@@ -2,8 +2,8 @@
 const vehicleTypes = [
   { id: "bike", label: "Bike" },
   { id: "car", label: "Car" },
-  { id: "evBike", label: "EV Bike" },
-  { id: "evCar", label: "EV Car" },
+  { id: "ev_bike", label: "EV Bike" },
+  { id: "ev_car", label: "EV Car" },
   { id: "bus", label: "Bus" },
 ];
 
