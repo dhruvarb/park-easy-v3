@@ -45,7 +45,7 @@ export const listSlots = async (req, res, next) => {
       FROM parking_lots pl
       LEFT JOIN parking_lot_amenities pla ON pla.lot_id = pl.id
       LEFT JOIN amenities a ON a.id = pla.amenity_id
-      LEFT JOIN slot_pricing sp ON sp.lot_id = pl.id AND sp.vehicle_type = $1
+      JOIN slot_pricing sp ON sp.lot_id = pl.id AND sp.vehicle_type = $1
       LEFT JOIN parking_slots s ON s.lot_id = pl.id AND s.vehicle_type = $1
       WHERE ($2::boolean IS FALSE OR pl.has_ev = TRUE)
         AND ($3::text IS NULL OR pl.city = $3)
