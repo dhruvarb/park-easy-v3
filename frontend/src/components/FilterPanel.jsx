@@ -2,9 +2,9 @@
 const vehicleTypes = [
   { id: "bike", label: "Bike" },
   { id: "car", label: "Car" },
-  { id: "ev-bike", label: "EV Bike" },
-  { id: "ev-car", label: "EV Car" },
-  { id: "mini-bus", label: "Mini Bus" },
+  { id: "evBike", label: "EV Bike" },
+  { id: "evCar", label: "EV Car" },
+  { id: "bus", label: "Bus" },
 ];
 
 const durations = ["Hourly", "Daily", "Monthly"];
