@@ -7,6 +7,8 @@ import MapView from "../components/MapView";
 import BookingModal from "../components/BookingModal";
 import api from "../services/api";
 
+import TopUpModal from "../components/TopUpModal";
+
 export default function UserDashboard() {
   const [filters, setFilters] = useState({
     vehicle: "car",
@@ -17,11 +19,23 @@ export default function UserDashboard() {
   const [favorites, setFavorites] = useState([]);
   const [viewMode, setViewMode] = useState("list"); // 'list' or 'map'
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [showTopUp, setShowTopUp] = useState(false);
 
   useEffect(() => {
     fetchSlots();
     fetchFavorites();
+    fetchBalance();
   }, [filters]);
+
+  const fetchBalance = async () => {
+    try {
+      const res = await api.get('/user/wallet/balance');
+      setWalletBalance(res.tokens);
+    } catch (error) {
+      console.error("Failed to fetch balance", error);
+    }
+  };
 
   const fetchSlots = async () => {
     try {
@@ -69,6 +83,7 @@ export default function UserDashboard() {
   const handleBookingSuccess = (slotNumber) => {
     alert(`Booking confirmed successfully! Your allocated Slot Number is: ${slotNumber || 'Assigned'}`);
     fetchSlots(); // Refresh slots to update availability
+    fetchBalance(); // Refresh balance after booking
   };
 
   return (
@@ -78,6 +93,28 @@ export default function UserDashboard() {
         <div className="max-w-6xl mx-auto grid lg:grid-cols-[300px,1fr] gap-10">
           <FilterPanel filters={filters} onChange={setFilters} />
           <section className="space-y-8">
+
+            {/* Wallet Section */}
+            <div className="rounded-[32px] border border-white/15 bg-gradient-to-r from-brandIndigo/50 to-brandPurple/50 backdrop-blur-2xl p-8 flex justify-between items-center relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-brandSky/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+              <div className="relative z-10">
+                <p className="text-xs tracking-[0.3em] uppercase text-brandSky mb-2">My Wallet</p>
+                <div className="flex items-baseline gap-2">
+                  <h2 className="text-4xl font-bold text-white">{walletBalance}</h2>
+                  <span className="text-lg text-white/60">Tokens</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowTopUp(true)}
+                className="relative z-10 bg-brandSky text-brandNight font-bold px-6 py-3 rounded-xl hover:bg-brandSky/90 transition-all shadow-lg shadow-brandSky/20 flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                  <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                </svg>
+                Add Tokens
+              </button>
+            </div>
+
             <header className="rounded-[32px] border border-white/15 bg-white/5 backdrop-blur-2xl p-6 flex flex-wrap gap-6 justify-between items-center">
               <div>
                 <p className="text-xs tracking-[0.3em] uppercase text-brandSky">
@@ -134,6 +171,17 @@ export default function UserDashboard() {
           vehicleType={filters.vehicle}
           onClose={() => setSelectedSlot(null)}
           onSuccess={handleBookingSuccess}
+        />
+      )}
+
+      {showTopUp && (
+        <TopUpModal
+          onClose={() => setShowTopUp(false)}
+          onSuccess={() => {
+            fetchBalance();
+            // Verify if we need to refresh other header components via context or props? 
+            // Currently UserHeader polls, so it will update eventually.
+          }}
         />
       )}
     </>
