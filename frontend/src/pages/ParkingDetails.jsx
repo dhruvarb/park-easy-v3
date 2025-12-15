@@ -327,7 +327,10 @@ export default function ParkingDetails() {
                                     </div>
                                 )}
                             </div>
-                            <button className="mt-4 w-full py-3 border border-white/10 rounded-xl font-medium text-gray-300 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-center gap-2">
+                            <button
+                                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${slot.latitude},${slot.longitude}`, '_blank')}
+                                className="mt-4 w-full py-3 border border-white/10 rounded-xl font-medium text-gray-300 hover:bg-white/5 hover:text-white transition-colors flex items-center justify-center gap-2"
+                            >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     fill="none"
