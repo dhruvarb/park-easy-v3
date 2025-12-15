@@ -19,6 +19,7 @@ export default function ParkingCard({ slot, onBook, isFavorite, onToggleFavorite
   };
 
   const { price, unit } = getPriceDisplay();
+  const isFull = slot.availableSlots === 0;
 
   return (
     <div
@@ -44,26 +45,26 @@ export default function ParkingCard({ slot, onBook, isFavorite, onToggleFavorite
 
       {slot.images && slot.images.length > 0 ? (
         <div
-          onClick={() => navigate(`/parking/${slot.id}`)}
-          className="h-36 w-full cursor-pointer overflow-hidden"
+          onClick={() => !isFull && navigate(`/parking/${slot.id}`)}
+          className={`h-36 w-full overflow-hidden ${isFull ? 'grayscale cursor-not-allowed' : 'cursor-pointer'}`}
         >
           <img
             src={slot.images[0].startsWith('http') ? slot.images[0] : `${API_BASE}${slot.images[0]}`}
             alt={slot.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            className={`w-full h-full object-cover transition-transform duration-500 ${!isFull && "group-hover:scale-110"}`}
           />
         </div>
       ) : (
         <div
-          onClick={() => navigate(`/parking/${slot.id}`)}
-          className="h-36 w-full cursor-pointer overflow-hidden relative"
+          onClick={() => !isFull && navigate(`/parking/${slot.id}`)}
+          className={`h-36 w-full overflow-hidden relative ${isFull ? 'grayscale cursor-not-allowed' : 'cursor-pointer'}`}
         >
           <img
             src={slot.hasEv
               ? "https://images.unsplash.com/photo-1590674899540-0047460de3df?q=80&w=800&auto=format&fit=crop"
               : "https://images.unsplash.com/photo-1506521781263-d8422e82f27a?q=80&w=800&auto=format&fit=crop"}
             alt="Parking Spot"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            className={`w-full h-full object-cover transition-transform duration-500 ${!isFull && "group-hover:scale-110"}`}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-brandIndigo/50 to-transparent"></div>
         </div>
@@ -81,7 +82,7 @@ export default function ParkingCard({ slot, onBook, isFavorite, onToggleFavorite
           )}
         </div>
         <div className="flex gap-4 text-sm items-center">
-          <span className="text-2xl font-semibold text-brandSky">
+          <span className={`text-2xl font-semibold ${isFull ? 'text-gray-500' : 'text-brandSky'}`}>
             ₹{price}
           </span>
           <span className="text-gray-400">
@@ -95,9 +96,13 @@ export default function ParkingCard({ slot, onBook, isFavorite, onToggleFavorite
         </div>
         <button
           onClick={() => onBook(slot)}
-          className="mt-auto w-full bg-brandSky text-brandNight font-semibold py-3 rounded-2xl hover:bg-white transition-all"
+          disabled={isFull}
+          className={`mt-auto w-full font-semibold py-3 rounded-2xl transition-all ${isFull
+            ? "bg-gray-600 text-gray-400 cursor-not-allowed border border-white/5"
+            : "bg-brandSky text-brandNight hover:bg-white"
+            }`}
         >
-          Book Slot
+          {isFull ? "Fully Occupied" : "Book Slot"}
         </button>
       </div>
     </div>

@@ -59,6 +59,32 @@ export default function UserBookings() {
         }
     };
 
+    const handleCancelBooking = async (bookingId) => {
+        if (!window.confirm("Are you sure you want to cancel? \n\nPolicy: \n> 30 mins before: Full Refund (Tokens). \n< 30 mins: No Refund.")) return;
+        try {
+            const res = await api.post(`/user/bookings/${bookingId}/cancel`);
+            alert(res.message);
+            if (res.refund > 0) alert(`Refunded ${res.refund} tokens.`);
+            fetchBookings();
+        } catch (error) {
+            console.error(error);
+            alert("Failed to cancel booking.");
+        }
+    };
+
+    const handleCheckout = async (bookingId) => {
+        if (!window.confirm("Confirm Check Out? Any overdue usage will incur penalty (10 Tokens/hr).")) return;
+        try {
+            const res = await api.post(`/user/bookings/${bookingId}/checkout`);
+            alert(res.message);
+            if (res.penalty > 0) alert(`Penalty Charged: ${res.penalty} tokens.`);
+            fetchBookings();
+        } catch (error) {
+            console.error(error);
+            alert("Failed to check out.");
+        }
+    };
+
     const filteredBookings = bookings.filter((booking) => {
         const now = new Date();
         const start = new Date(booking.start_time);
@@ -189,7 +215,28 @@ export default function UserBookings() {
                                                     Navigate
                                                 </button>
                                             )}
-                                            {!booking.refund_status && (activeTab === 'Active' || activeTab === 'Past') && (
+
+                                            {/* Cancel Button (Upcoming/Active) */}
+                                            {activeTab === 'Upcoming' && (
+                                                <button
+                                                    onClick={() => handleCancelBooking(booking.id)}
+                                                    className="w-full py-1.5 rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 text-xs font-semibold hover:bg-red-500/20 transition-colors"
+                                                >
+                                                    Cancel Booking
+                                                </button>
+                                            )}
+
+                                            {/* Check Out Button (Active) */}
+                                            {activeTab === 'Active' && (
+                                                <button
+                                                    onClick={() => handleCheckout(booking.id)}
+                                                    className="w-full py-1.5 rounded-lg bg-green-500/10 text-green-500 border border-green-500/20 text-xs font-semibold hover:bg-green-500/20 transition-colors"
+                                                >
+                                                    Check Out
+                                                </button>
+                                            )}
+
+                                            {!booking.refund_status && activeTab === 'Past' && (
                                                 <button
                                                     onClick={() => handleRefundClick(booking)}
                                                     className="text-xs text-red-400 hover:text-red-300 font-medium underline"

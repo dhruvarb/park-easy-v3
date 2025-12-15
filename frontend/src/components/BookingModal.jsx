@@ -8,8 +8,20 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
     const [vehicleNumber, setVehicleNumber] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [walletBalance, setWalletBalance] = useState(0);
 
-    const [paymentDetails, setPaymentDetails] = useState(null);
+    useEffect(() => {
+        fetchBalance();
+    }, []);
+
+    const fetchBalance = async () => {
+        try {
+            const res = await api.get('/user/wallet/balance');
+            setWalletBalance(res.tokens);
+        } catch (error) {
+            console.error("Failed to fetch balance", error);
+        }
+    };
 
     // Calculate duration and total price
     const { duration, total, appliedRate } = useMemo(() => {
@@ -17,7 +29,7 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
         const end = new Date(`${date}T${endTime}`);
 
         if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-            return { duration: "0.0", total: "0.00", appliedRate: '' };
+            return { duration: "0.0", total: 0, appliedRate: '' };
         }
 
         let diffMs = end - start;
@@ -32,7 +44,6 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
         let finalTotal = 0;
         let rateLabel = 'Hourly';
 
-        // Logic: Use daily rate if duration > 24h OR if hourly total exceeds daily rate
         if (daily > 0 && (diffHrs >= 24 || (diffHrs * hourly > daily))) {
             const days = Math.ceil(diffHrs / 24);
             finalTotal = days * daily;
@@ -44,10 +55,12 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
 
         return {
             duration: diffHrs.toFixed(1),
-            total: finalTotal.toFixed(2),
+            total: Math.ceil(finalTotal), // Round up for tokens
             appliedRate: rateLabel
         };
     }, [date, startTime, endTime, slot.pricing]);
+
+    const isInsufficientFunds = walletBalance < total;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -64,6 +77,12 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
                 return;
             }
 
+            if (isInsufficientFunds) {
+                setError("Insufficient tokens. Please top up your wallet.");
+                setLoading(false);
+                return;
+            }
+
             const response = await api.post('/user/bookings', {
                 lotId: slot.id,
                 vehicleType: vehicleType,
@@ -72,12 +91,9 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
                 amount: Number(total)
             });
 
-            if (response.payment && response.payment.upiId) {
-                setPaymentDetails(response.payment);
-            } else {
-                onSuccess();
-                onClose();
-            }
+            onSuccess(response.slotNumber);
+            onClose();
+
         } catch (err) {
             console.error(err);
             setError(err.response?.data?.message || 'Failed to create booking');
@@ -85,71 +101,6 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
             setLoading(false);
         }
     };
-
-    const handlePaymentDone = () => {
-        // Redirect to Google Maps
-        if (slot.latitude && slot.longitude) {
-            const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${slot.latitude},${slot.longitude}`;
-            window.open(mapUrl, '_blank');
-        } else if (slot.address) {
-            // Fallback to address
-            const mapUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(slot.address)}`;
-            window.open(mapUrl, '_blank');
-        }
-
-        onSuccess();
-        onClose();
-    };
-
-    if (paymentDetails) {
-        if (!paymentDetails.upiId) {
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-                    <div className="bg-brandIndigo rounded-3xl w-full max-w-md p-8 text-center space-y-4 border border-white/10">
-                        <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto text-red-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                            </svg>
-                        </div>
-                        <h2 className="text-xl font-bold text-white">Payment Setup Incomplete</h2>
-                        <p className="text-gray-400">The parking lot owner has not set up their payment details yet. Please contact support or try again later.</p>
-                        <button onClick={onClose} className="w-full bg-white/10 text-white font-semibold py-3 rounded-xl hover:bg-white/20 transition-all">
-                            Close
-                        </button>
-                    </div>
-                </div>
-            );
-        }
-
-        const upiUrl = `upi://pay?pa=${paymentDetails.upiId}&am=${paymentDetails.amount}&cu=INR`;
-        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
-
-        return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-                <div className="bg-brandIndigo rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative p-8 text-center space-y-6 border border-white/10">
-                    <h2 className="text-2xl font-bold text-white">Scan to Pay</h2>
-                    <p className="text-gray-400">
-                        Please scan the QR code using any UPI app to complete the payment of <span className="font-bold text-white">₹{paymentDetails.amount}</span>.
-                    </p>
-
-                    <div className="flex justify-center">
-                        <img src={qrCodeUrl} alt="UPI QR Code" className="w-48 h-48 border-4 border-white rounded-xl" />
-                    </div>
-
-                    <div className="bg-brandNight p-4 rounded-xl text-sm text-gray-400">
-                        <p>UPI ID: <span className="font-mono font-bold text-white">{paymentDetails.upiId}</span></p>
-                    </div>
-
-                    <button
-                        onClick={handlePaymentDone}
-                        className="w-full bg-green-500 text-white font-bold py-3 rounded-xl hover:bg-green-600 transition-all shadow-lg shadow-green-500/20"
-                    >
-                        I have made the payment
-                    </button>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
@@ -169,7 +120,6 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
                     {/* Slot Info */}
                     <div className="flex gap-4 bg-brandNight p-3 rounded-2xl">
                         <div className="w-16 h-16 bg-white/5 rounded-xl flex-shrink-0 overflow-hidden">
-                            {/* Placeholder for image if available, or a generic icon */}
                             {slot.images && slot.images.length > 0 ? (
                                 <img
                                     src={`${import.meta.env.VITE_API_BASE || 'http://localhost:5000'}${slot.images[0]}`}
@@ -241,37 +191,20 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
 
                         {/* Price Summary */}
                         <div className="space-y-3 pt-4 border-t border-white/10">
-                            <h4 className="text-sm font-medium text-white">Price Summary</h4>
+                            <h4 className="text-sm font-medium text-white">Payment Summary</h4>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-400">Wallet Balance</span>
+                                <span className="text-brandUnicorn font-semibold">🪙 {walletBalance}</span>
+                            </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-400">Duration</span>
                                 <span className="text-white">{duration} hours</span>
                             </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-400">Rate Applied</span>
-                                <span className="text-white">
-                                    {appliedRate === 'Hourly'
-                                        ? `₹${slot.pricing?.hourly || 0}/hour`
-                                        : appliedRate.includes('Daily')
-                                            ? `₹${slot.pricing?.daily || 0}/day`
-                                            : 'Standard'}
-                                </span>
-                            </div>
                             <div className="flex justify-between text-lg font-bold pt-2">
-                                <span className="text-white">Total</span>
-                                <span className="text-brandIris">₹{total}</span>
-                            </div>
-                        </div>
-
-                        {/* Payment Method (Mock) */}
-                        <div className="space-y-3 pt-4 border-t border-white/10">
-                            <h4 className="text-sm font-medium text-white">Payment Method</h4>
-                            <div className="flex items-center justify-between bg-brandNight border border-white/10 rounded-xl p-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-5 bg-white rounded flex items-center justify-center text-[10px] text-brandNight font-bold">UPI</div>
-                                    <div className="text-sm text-gray-300">
-                                        Pay via UPI QR Code
-                                    </div>
-                                </div>
+                                <span className="text-white">Total Cost</span>
+                                <span className={isInsufficientFunds ? "text-red-400" : "text-brandIris"}>
+                                    🪙 {total}
+                                </span>
                             </div>
                         </div>
 
@@ -289,10 +222,13 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
                             </button>
                             <button
                                 type="submit"
-                                disabled={loading}
-                                className="w-full bg-brandSky text-brandNight font-semibold py-3 rounded-xl hover:bg-brandSky/90 transition-all disabled:opacity-60"
+                                disabled={loading || isInsufficientFunds}
+                                className={`w-full font-semibold py-3 rounded-xl transition-all disabled:opacity-60 ${isInsufficientFunds
+                                        ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                                        : 'bg-brandSky text-brandNight hover:bg-brandSky/90'
+                                    }`}
                             >
-                                {loading ? 'Processing...' : `Confirm Booking - ₹${total}`}
+                                {loading ? 'Processing...' : isInsufficientFunds ? 'Insufficient Tokens' : `Pay 🪙${total}`}
                             </button>
                         </div>
                     </form>

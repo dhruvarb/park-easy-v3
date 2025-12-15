@@ -175,11 +175,20 @@ export default function AdminDashboard() {
   const [supportSubmitting, setSupportSubmitting] = useState(false);
 
   useEffect(() => {
-    if (activeTab === "Bookings") fetchBookings();
-    if (activeTab === "Earnings / Revenue") fetchEarnings();
-    if (activeTab === "Reviews") fetchReviews();
-    if (activeTab === "Messages") fetchMessages();
-    if (activeTab === "Refunds") fetchRefunds();
+    const loadData = async () => {
+      if (activeTab === "Dashboard") await fetchLots();
+      if (activeTab === "Bookings") await fetchBookings();
+      if (activeTab === "Earnings / Revenue") await fetchEarnings();
+      if (activeTab === "Reviews") await fetchReviews();
+      if (activeTab === "Messages") await fetchMessages();
+      if (activeTab === "Refunds") await fetchRefunds();
+    };
+
+    loadData(); // Initial load
+
+    const interval = setInterval(loadData, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   const fetchBookings = async () => {

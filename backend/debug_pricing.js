@@ -17,27 +17,15 @@ const debug = async () => {
         await client.connect();
         console.log("Connected to DB");
 
-        // 1. Find the lot 'wert'
-        const lotRes = await client.query("SELECT * FROM parking_lots WHERE name = 'wert'");
-        if (lotRes.rows.length === 0) {
-            console.log("Lot 'wert' not found. Listing all lots:");
-            const allLots = await client.query("SELECT id, name FROM parking_lots LIMIT 5");
-            console.table(allLots.rows);
-            return;
-        }
+        // 1. Check all available vehicle types in pricing
+        console.log("\n--- All Vehicle Types in Pricing ---");
+        const typesRes = await client.query("SELECT DISTINCT vehicle_type FROM slot_pricing");
+        console.table(typesRes.rows);
 
-        const lot = lotRes.rows[0];
-        console.log("Found Lot:", lot.name, lot.id);
-
-        // 2. Check pricing
-        console.log("\n--- Pricing ---");
-        const priceRes = await client.query("SELECT * FROM slot_pricing WHERE lot_id = $1", [lot.id]);
-        console.table(priceRes.rows);
-
-        // 3. Check slots
-        console.log("\n--- Slots Summary ---");
-        const slotRes = await client.query("SELECT vehicle_type, count(*) FROM parking_slots WHERE lot_id = $1 GROUP BY vehicle_type", [lot.id]);
-        console.table(slotRes.rows);
+        // 2. Check lots that HAVE 'ev_car' or 'ev_bike' pricing
+        console.log("\n--- Lots with EV pricing ---");
+        const evLots = await client.query("SELECT pl.id, pl.name, pl.city, sp.vehicle_type FROM parking_lots pl JOIN slot_pricing sp ON sp.lot_id = pl.id WHERE sp.vehicle_type IN ('ev_car', 'ev_bike', 'evCar', 'evBike')");
+        console.table(evLots.rows);
 
     } catch (err) {
         console.error("Error:", err.message);

@@ -66,8 +66,8 @@ export default function UserDashboard() {
     setSelectedSlot(slot);
   };
 
-  const handleBookingSuccess = () => {
-    alert("Booking confirmed successfully!");
+  const handleBookingSuccess = (slotNumber) => {
+    alert(`Booking confirmed successfully! Your allocated Slot Number is: ${slotNumber || 'Assigned'}`);
     fetchSlots(); // Refresh slots to update availability
   };
 

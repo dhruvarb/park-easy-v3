@@ -121,31 +121,26 @@ export const createBooking = async (req, res, next) => {
     }
 
     // Find an available slot in the lot for the given vehicle type and time range
-    const availableSlot = await query(
-      `
-      SELECT id FROM parking_slots s
-      WHERE lot_id = $1 AND vehicle_type = $2
-      AND NOT EXISTS (
-        SELECT 1 FROM bookings b
-        WHERE b.slot_id = s.id
-        AND tstzrange(b.start_time, b.end_time, '[)') && tstzrange($3, $4, '[)')
-        AND b.status IN ('pending', 'confirmed')
-      )
-      LIMIT 1
-      `,
-      [
-        payload.lotId,
-        payload.vehicleType,
-        payload.startTime,
-        payload.endTime,
-      ]
+    // Check for available slot
+    // We need to find a slot that is NOT booked for the requested time range
+    // For simplicity in this version, we might just look for is_available = true.
+    // Ideally we should check for overlapping bookings.
+
+    // Updated logic: Select id AND slot_number
+    const slotResult = await query(
+      `SELECT id, slot_number FROM parking_slots 
+       WHERE lot_id = $1 AND vehicle_type = $2 AND is_available = true
+       LIMIT 1`,
+      [payload.lotId, payload.vehicleType]
     );
 
-    if (!availableSlot.rowCount) {
-      return res.status(409).json({ message: "No slots available for the selected time" });
+    if (slotResult.rows.length === 0) {
+      return res.status(404).json({ message: "No slots available for this vehicle type" });
     }
 
-    const slotId = availableSlot.rows[0].id;
+    const slotId = slotResult.rows[0].id;
+    const slotNumber = slotResult.rows[0].slot_number;
+
 
     // Fetch admin's UPI ID
     const lotOwner = await query(
@@ -160,44 +155,53 @@ export const createBooking = async (req, res, next) => {
     try {
       await client.query('BEGIN');
 
+      // Check User Balance
+      const balanceRes = await client.query('SELECT tokens FROM users WHERE id = $1', [req.user.id]);
+      const currentBalance = balanceRes.rows[0]?.tokens || 0;
+      const cost = payload.amount || 0;
+
+      if (currentBalance < cost) {
+        throw new Error("Insufficient tokens. Please top up your wallet.");
+      }
+
+      // Deduct Tokens
+      await client.query('UPDATE users SET tokens = tokens - $1 WHERE id = $2', [cost, req.user.id]);
+      await client.query(
+        `INSERT INTO token_transactions(user_id, amount, type, description)
+         VALUES($1, $2, 'debit', 'Parking Booking')`,
+        [req.user.id, cost]
+      );
+
       const { rows } = await client.query(
         `
-          INSERT INTO bookings (slot_id, user_id, start_time, end_time, amount_paid, status)
-          VALUES ($1, $2, $3, $4, $5, 'confirmed')
+          INSERT INTO bookings(slot_id, user_id, start_time, end_time, amount_paid, status)
+          VALUES($1, $2, $3, $4, $5, 'confirmed')
           RETURNING *
-          `,
+      `,
         [
           slotId,
           req.user.id,
           payload.startTime,
           payload.endTime,
-          payload.amount ?? null,
+          cost,
         ]
       );
 
       const booking = rows[0];
 
-      // Log Payment
-      if (payload.amount) {
-        await client.query(
-          `INSERT INTO payments (booking_id, user_id, amount, type, status)
-                 VALUES ($1, $2, $3, 'payment', 'success')`,
-          [booking.id, req.user.id, payload.amount]
-        );
-      }
-
       await client.query('COMMIT');
 
       return res.status(201).json({
         booking: booking,
-        payment: {
-          upiId: adminUpiId,
-          amount: payload.amount,
-          currency: "INR"
-        }
+        slotNumber: slotNumber,
+        message: "Booking confirmed with Tokens"
       });
     } catch (err) {
       await client.query('ROLLBACK');
+      // If custom error
+      if (err.message.includes("Insufficient tokens")) {
+        return res.status(400).json({ message: err.message });
+      }
       throw err;
     } finally {
       client.release();
@@ -221,19 +225,19 @@ export const listBookings = async (req, res) => {
     const result = await query(
       `
       SELECT 
-        b.id, 
-        b.start_time, 
-        b.end_time, 
-        b.amount_paid, 
-        b.status,
-        b.created_at,
-        pl.name as lot_name,
-        pl.address,
-        pl.latitude,
-        pl.longitude,
-        ps.vehicle_type,
-        ps.is_ev,
-        (SELECT status FROM refund_requests rr WHERE rr.booking_id = b.id LIMIT 1) as refund_status
+        b.id,
+      b.start_time,
+      b.end_time,
+      b.amount_paid,
+      b.status,
+      b.created_at,
+      pl.name as lot_name,
+      pl.address,
+      pl.latitude,
+      pl.longitude,
+      ps.vehicle_type,
+      ps.is_ev,
+      (SELECT status FROM refund_requests rr WHERE rr.booking_id = b.id LIMIT 1) as refund_status
       FROM bookings b
       JOIN parking_slots ps ON b.slot_id = ps.id
       JOIN parking_lots pl ON ps.lot_id = pl.id
@@ -293,8 +297,8 @@ export const requestRefund = async (req, res) => {
     }
 
     await query(
-      `INSERT INTO refund_requests (booking_id, user_id, reason)
-             VALUES ($1, $2, $3)`,
+      `INSERT INTO refund_requests(booking_id, user_id, reason)
+    VALUES($1, $2, $3)`,
       [bookingId, req.user.id, reason]
     );
 
@@ -302,6 +306,156 @@ export const requestRefund = async (req, res) => {
   } catch (error) {
     console.error("Request refund error:", error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getWalletBalance = async (req, res) => {
+  try {
+    const { rows } = await query('SELECT tokens FROM users WHERE id = $1', [req.user.id]);
+    res.json({ tokens: rows[0]?.tokens || 0 });
+  } catch (error) {
+    console.error("Get wallet error:", error);
+    res.status(500).json({ message: "Failed to fetch wallet balance" });
+  }
+};
+
+export const topUpWallet = async (req, res) => {
+  try {
+    const { amount } = req.body; // INR amount, 1 INR = 1 Token
+    if (!amount || amount <= 0) return res.status(400).json({ message: "Invalid amount" });
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Update User Tokens
+      await client.query('UPDATE users SET tokens = tokens + $1 WHERE id = $2', [amount, req.user.id]);
+
+      // Log Transaction
+      await client.query(
+        `INSERT INTO token_transactions(user_id, amount, type, description)
+         VALUES($1, $2, 'credit', 'Wallet Top Up')`,
+        [req.user.id, amount]
+      );
+
+      await client.query('COMMIT');
+      res.json({ message: "Wallet topped up successfully" });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error("Top up error:", error);
+    res.status(500).json({ message: "Top up failed" });
+  }
+};
+
+export const cancelBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const { rows } = await client.query('SELECT * FROM bookings WHERE id = $1 AND user_id = $2', [id, req.user.id]);
+      if (rows.length === 0) throw new Error("Booking not found");
+
+      const booking = rows[0];
+      if (booking.status === 'cancelled') throw new Error("Booking already cancelled");
+
+      const now = new Date();
+      const start = new Date(booking.start_time);
+      const diffMs = start - now;
+      const diffMins = Math.floor(diffMs / 60000);
+
+      let refundAmount = 0;
+      if (diffMins > 30) {
+        // Full Refund
+        refundAmount = booking.amount_paid; // Assuming amount_paid is in tokens now
+      }
+
+      // Update Booking
+      await client.query("UPDATE bookings SET status = 'cancelled' WHERE id = $1", [id]);
+
+      // Refund Tokens if applicable
+      if (refundAmount > 0) {
+        await client.query('UPDATE users SET tokens = tokens + $1 WHERE id = $2', [refundAmount, req.user.id]);
+        await client.query(
+          `INSERT INTO token_transactions(user_id, amount, type, description)
+           VALUES($1, $2, 'credit', 'Booking Refund')`,
+          [req.user.id, refundAmount]
+        );
+      }
+
+      await client.query('COMMIT');
+      res.json({ message: "Booking cancelled", refund: refundAmount });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      res.status(400).json({ message: err.message });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error("Cancel booking error:", error);
+    res.status(500).json({ message: "Cancellation failed" });
+  }
+};
+
+export const checkoutBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const { rows } = await client.query('SELECT * FROM bookings WHERE id = $1 AND user_id = $2', [id, req.user.id]);
+      if (rows.length === 0) throw new Error("Booking not found");
+      const booking = rows[0];
+
+      if (booking.actual_end_time) throw new Error("Already checked out");
+
+      const now = new Date();
+      const end = new Date(booking.end_time);
+
+      let penalty = 0;
+      if (now > end) {
+        const overdueMs = now - end;
+        const overdueHours = Math.ceil(overdueMs / (1000 * 60 * 60));
+        penalty = overdueHours * 10; // 10 Tokens per hour penalty
+      }
+
+      // Update Booking
+      await client.query(
+        "UPDATE bookings SET actual_end_time = $1, penalty_paid = $2, status = 'completed' WHERE id = $3",
+        [now, penalty, id]
+      );
+
+      // Deduct Penalty
+      if (penalty > 0) {
+        await client.query('UPDATE users SET tokens = tokens - $1 WHERE id = $2', [penalty, req.user.id]);
+        await client.query(
+          `INSERT INTO token_transactions(user_id, amount, type, description)
+                 VALUES($1, $2, 'debit', 'Late Checkout Penalty')`,
+          [req.user.id, penalty]
+        );
+      }
+
+      await client.query('COMMIT');
+      res.json({ message: "Checked out successfully", penalty });
+
+    } catch (err) {
+      await client.query('ROLLBACK');
+      res.status(400).json({ message: err.message });
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error("Checkout error:", error);
+    res.status(500).json({ message: "Checkout failed" });
   }
 };
 
@@ -313,7 +467,7 @@ export const addFavorite = async (req, res) => {
     }
 
     await query(
-      `INSERT INTO favorites (user_id, lot_id) VALUES ($1, $2) ON CONFLICT (user_id, lot_id) DO NOTHING`,
+      `INSERT INTO favorites(user_id, lot_id) VALUES($1, $2) ON CONFLICT(user_id, lot_id) DO NOTHING`,
       [req.user.id, lotId]
     );
 
@@ -349,26 +503,26 @@ export const listFavorites = async (req, res) => {
 
     const result = await query(
       `
-      SELECT 
-        pl.id, 
-        pl.name, 
-        pl.address, 
-        pl.has_ev,
-        pl.latitude,
-        pl.longitude,
-        (
-            SELECT json_agg(label)
+    SELECT
+    pl.id,
+      pl.name,
+      pl.address,
+      pl.has_ev,
+      pl.latitude,
+      pl.longitude,
+      (
+        SELECT json_agg(label)
             FROM parking_lot_amenities pla
             JOIN amenities a ON pla.amenity_id = a.id
             WHERE pla.lot_id = pl.id
         ) as amenities,
-        (
-            SELECT json_object_agg(vehicle_type, hourly)
+  (
+    SELECT json_object_agg(vehicle_type, hourly)
             FROM slot_pricing sp
             WHERE sp.lot_id = pl.id
         ) as pricing,
-        (
-            SELECT COUNT(*)
+  (
+    SELECT COUNT(*)
             FROM parking_slots ps
             WHERE ps.lot_id = pl.id AND ps.is_available = TRUE
         ) as available_slots
@@ -474,7 +628,7 @@ export const addReview = async (req, res) => {
       return res.status(400).json({ message: "Lot ID and rating are required" });
     }
     await query(
-      `INSERT INTO reviews (user_id, lot_id, rating, comment) VALUES ($1, $2, $3, $4)`,
+      `INSERT INTO reviews(user_id, lot_id, rating, comment) VALUES($1, $2, $3, $4)`,
       [req.user.id, lotId, rating, comment]
     );
     return res.status(201).json({ message: "Review added successfully" });

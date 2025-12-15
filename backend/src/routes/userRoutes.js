@@ -16,6 +16,10 @@ import {
   getReviews,
   getPaymentHistory,
   requestRefund,
+  getWalletBalance,
+  topUpWallet,
+  cancelBooking,
+  checkoutBooking
 } from "../controllers/userController.js";
 import { requireAuth } from "../middleware/auth.js";
 
@@ -30,6 +34,12 @@ router.post("/bookings", createBooking);
 
 router.get("/payments", getPaymentHistory);
 router.post("/refunds", requestRefund);
+
+router.get("/wallet/balance", getWalletBalance);
+router.post("/wallet/topup", topUpWallet);
+
+router.post("/bookings/:id/cancel", cancelBooking);
+router.post("/bookings/:id/checkout", checkoutBooking);
 
 router.get("/favorites", listFavorites);
 router.post("/favorites", addFavorite);

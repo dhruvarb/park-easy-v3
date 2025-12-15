@@ -4,6 +4,8 @@ import api from "../services/api";
 import NotificationDropdown from "./NotificationDropdown";
 import logo from "../assets/logo.svg";
 
+import TopUpModal from "./TopUpModal";
+
 export default function UserHeader() {
     const location = useLocation();
     const isActive = (path) => location.pathname === path;
@@ -11,6 +13,10 @@ export default function UserHeader() {
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const [loadingNotifications, setLoadingNotifications] = useState(true);
+
+    // Wallet State
+    const [walletBalance, setWalletBalance] = useState(0);
+    const [showTopUp, setShowTopUp] = useState(false);
 
     const [showProfileMenu, setShowProfileMenu] = useState(false);
     const profileMenuRef = useRef(null);
@@ -24,8 +30,12 @@ export default function UserHeader() {
 
     useEffect(() => {
         fetchNotifications();
-        // Poll for new notifications every minute
-        const interval = setInterval(fetchNotifications, 60000);
+        fetchBalance();
+        // Poll for new notifications and balance every minute
+        const interval = setInterval(() => {
+            fetchNotifications();
+            fetchBalance();
+        }, 30000); // Increased frequency to 30s
 
         // Click outside for profile menu
         const handleClickOutside = (event) => {
@@ -40,6 +50,15 @@ export default function UserHeader() {
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, []);
+
+    const fetchBalance = async () => {
+        try {
+            const res = await api.get('/user/wallet/balance');
+            setWalletBalance(res.tokens);
+        } catch (error) {
+            console.error("Failed to fetch balance", error);
+        }
+    };
 
     const fetchNotifications = async () => {
         try {
@@ -170,51 +189,66 @@ export default function UserHeader() {
                 </div>
 
                 <div className="relative" ref={profileMenuRef}>
-                    <button
-                        onClick={() => setShowProfileMenu(!showProfileMenu)}
-                        className="flex items-center gap-2 focus:outline-none"
-                    >
-                        <div className="w-10 h-10 rounded-full bg-brandIndigo overflow-hidden border-2 border-white/10 shadow-sm">
-                            <img
-                                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
-                                alt="User"
-                                className="w-full h-full object-cover"
-                            />
-                        </div>
-                        <span className="hidden md:block text-sm font-medium text-white">Profile</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-4 h-4 text-gray-500 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                        </svg>
-                    </button>
-
-                    {showProfileMenu && (
-                        <div className="absolute right-0 mt-2 w-48 bg-brandIndigo rounded-xl shadow-xl border border-white/10 py-1 z-50 animate-in fade-in zoom-in-95 duration-200">
-                            <div className="px-4 py-2 border-b border-white/5">
-                                <p className="text-sm font-semibold text-white">My Account</p>
-                            </div>
-                            <Link
-                                to="/profile"
-                                className="block px-4 py-2 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
-                                onClick={() => setShowProfileMenu(false)}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                                </svg>
-                                View Profile
-                            </Link>
+                    <div className="flex items-center gap-4">
+                        {/* Wallet Badge */}
+                        <div className="flex items-center gap-2 bg-brandNight/50 border border-white/10 px-3 py-1.5 rounded-full">
+                            <span className="text-xl">🪙</span>
+                            <span className="text-sm font-bold text-brandUnicorn">{walletBalance}</span>
                             <button
-                                onClick={handleLogout}
-                                className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2"
+                                onClick={() => setShowTopUp(true)}
+                                className="ml-2 text-xs bg-brandSky text-brandNight px-2 py-0.5 rounded-md font-bold hover:bg-brandSky/90"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-                                </svg>
-                                Logout
+                                +
                             </button>
                         </div>
-                    )}
+
+                        <button
+                            onClick={() => setShowProfileMenu(!showProfileMenu)}
+                            className="flex items-center gap-2 focus:outline-none"
+                        >
+                            <div className="w-10 h-10 rounded-full bg-brandIndigo overflow-hidden border-2 border-white/10 shadow-sm">
+                                <img
+                                    src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+                                    alt="User"
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                            <span className="hidden md:block text-sm font-medium text-white">Profile</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-4 h-4 text-gray-500 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                            </svg>
+                        </button>
+
+                        {showProfileMenu && (
+                            <div className="absolute right-0 mt-2 w-48 bg-brandIndigo rounded-xl shadow-xl border border-white/10 py-1 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                <div className="px-4 py-2 border-b border-white/5">
+                                    <p className="text-sm font-semibold text-white">My Account</p>
+                                </div>
+                                <Link
+                                    to="/profile"
+                                    className="block px-4 py-2 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
+                                    onClick={() => setShowProfileMenu(false)}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                    </svg>
+                                    View Profile
+                                </Link>
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                                    </svg>
+                                    Logout
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
+            {showTopUp && <TopUpModal onClose={() => setShowTopUp(false)} onSuccess={fetchBalance} />}
         </header>
     );
 }
