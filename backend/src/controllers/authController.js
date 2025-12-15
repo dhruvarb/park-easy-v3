@@ -27,29 +27,51 @@ export const signup = async (req, res, next) => {
     }
 
     const passwordHash = await hashPassword(payload.password);
-    const { rows } = await query(
-      `INSERT INTO users (full_name, email, phone, role, password_hash, is_verified, upi_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, role, full_name, email, is_verified, upi_id`,
-      [
-        payload.fullName,
-        payload.email,
-        payload.phone || null,
-        payload.role,
-        passwordHash,
-        payload.role === "admin" ? false : true,
-        payload.upiId || null,
-      ]
-    );
 
-    const user = rows[0];
-    const token = signToken({
-      id: user.id,
-      role: user.role,
-      email: user.email,
-    });
+    // Start Transaction
+    const client = await import("../config/db.js").then(m => m.default.connect());
+    try {
+      await client.query('BEGIN');
 
-    return res.status(201).json({ token, user });
+      const { rows } = await client.query(
+        `INSERT INTO users (full_name, email, phone, role, password_hash, is_verified, upi_id, tokens)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 100)
+         RETURNING id, role, full_name, email, is_verified, upi_id, tokens`,
+        [
+          payload.fullName,
+          payload.email,
+          payload.phone || null,
+          payload.role,
+          passwordHash,
+          payload.role === "admin" ? false : true,
+          payload.upiId || null,
+        ]
+      );
+
+      const user = rows[0];
+
+      // Log Welcome Bonus Transaction
+      await client.query(
+        `INSERT INTO token_transactions(user_id, amount, type, description)
+         VALUES($1, 100, 'credit', 'Welcome Bonus')`,
+        [user.id]
+      );
+
+      await client.query('COMMIT');
+
+      const token = signToken({
+        id: user.id,
+        role: user.role,
+        email: user.email,
+      });
+
+      return res.status(201).json({ token, user });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (error) {
     console.error("Signup error:", error);
     if (error instanceof z.ZodError) {
