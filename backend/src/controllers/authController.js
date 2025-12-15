@@ -4,7 +4,7 @@ import { hashPassword, comparePassword, signToken } from "../utils/security.js";
 
 const signupSchema = z.object({
   fullName: z.string().min(3),
-  email: z.string().email(),
+  email: z.string().trim().email(),
   password: z.string().min(6),
   phone: z.string().optional(),
   role: z.enum(["user", "admin"]).default("user"),
@@ -12,7 +12,7 @@ const signupSchema = z.object({
 });
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().email(),
   password: z.string(),
 });
 
