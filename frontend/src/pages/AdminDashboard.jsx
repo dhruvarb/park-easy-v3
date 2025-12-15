@@ -673,9 +673,6 @@ export default function AdminDashboard() {
                       <div
                         key={lot.id}
                         onClick={() => setSelectedLot(lot)}
-                      <div
-                        key={lot.id}
-                        onClick={() => setSelectedLot(lot)}
                         className="p-4 rounded-xl border border-white/5 hover:border-brandSky/30 hover:bg-white/5 transition-all group cursor-pointer flex gap-4"
                       >
                         {/* Image Thumbnail */}
