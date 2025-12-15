@@ -126,12 +126,20 @@ export const createBooking = async (req, res, next) => {
     // For simplicity in this version, we might just look for is_available = true.
     // Ideally we should check for overlapping bookings.
 
-    // Updated logic: Select id AND label (slot number)
+    // Updated logic: Select id AND label (slot number) filtering out booked slots
     const slotResult = await query(
-      `SELECT id, label FROM parking_slots 
-       WHERE lot_id = $1 AND vehicle_type = $2 AND is_available = true
+      `SELECT id, label FROM parking_slots s
+       WHERE s.lot_id = $1 
+         AND s.vehicle_type = $2 
+         AND s.is_available = true
+         AND NOT EXISTS (
+           SELECT 1 FROM bookings b 
+           WHERE b.slot_id = s.id 
+             AND b.status = 'confirmed'
+             AND (b.start_time < $4 AND b.end_time > $3)
+         )
        LIMIT 1`,
-      [payload.lotId, payload.vehicleType]
+      [payload.lotId, payload.vehicleType, payload.startTime, payload.endTime]
     );
 
     if (slotResult.rows.length === 0) {
