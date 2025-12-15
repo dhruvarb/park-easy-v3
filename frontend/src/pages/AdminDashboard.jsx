@@ -166,8 +166,6 @@ export default function AdminDashboard() {
   const [bookings, setBookings] = useState([]);
   const [earnings, setEarnings] = useState(null);
   const [reviews, setReviews] = useState([]);
-  const [messages, setMessages] = useState([]);
-  const [refunds, setRefunds] = useState([]);
   const [showLocationHelp, setShowLocationHelp] = useState(false);
 
   // Support Form State
@@ -180,8 +178,6 @@ export default function AdminDashboard() {
       if (activeTab === "Bookings") await fetchBookings();
       if (activeTab === "Earnings / Revenue") await fetchEarnings();
       if (activeTab === "Reviews") await fetchReviews();
-      if (activeTab === "Messages") await fetchMessages();
-      if (activeTab === "Refunds") await fetchRefunds();
     };
 
     loadData(); // Initial load
@@ -209,47 +205,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchRefunds = async () => {
-    try {
-      const data = await adminApi.getRefunds();
-      setRefunds(data.requests);
-    } catch (error) {
-      console.error("Failed to fetch refunds", error);
-    }
-  };
 
-  const handleRefundAction = async (id, status, amount) => {
-    try {
-      await adminApi.handleRefund(id, {
-        status,
-        refundAmount: amount,
-        adminResponse: status === 'approved' ? 'Refund approved.' : 'Refund rejected.'
-      });
-      alert(`Refund request ${status}`);
-      fetchRefunds();
-    } catch (error) {
-      console.error("Failed to handle refund", error);
-      alert("Action failed");
-    }
-  };
-
-  const fetchReviews = async () => {
-    try {
-      const res = await adminApi.getReviews();
-      setReviews(res.reviews);
-    } catch (error) {
-      console.error("Failed to fetch reviews", error);
-    }
-  };
-
-  const fetchMessages = async () => {
-    try {
-      const res = await adminApi.getMessages();
-      setMessages(res.messages);
-    } catch (error) {
-      console.error("Failed to fetch messages", error);
-    }
-  };
 
   const handleSupportSubmit = async (e) => {
     e.preventDefault();
@@ -498,27 +454,6 @@ export default function AdminDashboard() {
       name: "Earnings / Revenue", icon: (
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      )
-    },
-    {
-      name: "Payments", icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-        </svg>
-      )
-    },
-    {
-      name: "Refunds", icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-        </svg>
-      )
-    },
-    {
-      name: "Messages", icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
         </svg>
       )
     },
@@ -836,71 +771,6 @@ export default function AdminDashboard() {
                   </div>
                 </section>
               </div>
-            ) : activeTab === "Payments" ? (
-              <section className="bg-[#1e293b] rounded-2xl shadow-sm border border-white/10 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm text-gray-400">
-                    <thead className="bg-white/5 text-gray-200 font-semibold border-b border-white/10">
-                      <tr>
-                        <th className="px-6 py-4">Date</th>
-                        <th className="px-6 py-4">Booking ID</th>
-                        <th className="px-6 py-4">Type</th>
-                        <th className="px-6 py-4">Amount</th>
-                        <th className="px-6 py-4">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/10">
-                      {/* We can reuse bookings or fetch separate payments if needed. For now, let's assume bookings have payment info or we add a fetchPayments call */}
-                      {bookings.map((booking) => (
-                        <tr key={booking.id} className="hover:bg-white/5 transition-colors">
-                          <td className="px-6 py-4">{new Date(booking.created_at).toLocaleDateString()}</td>
-                          <td className="px-6 py-4 font-mono text-xs text-gray-500">{booking.id.slice(0, 8)}...</td>
-                          <td className="px-6 py-4">Payment</td>
-                          <td className="px-6 py-4 font-medium text-white">₹{booking.amount_paid}</td>
-                          <td className="px-6 py-4">
-                            <span className="px-2 py-1 rounded text-xs font-semibold bg-green-500/10 text-green-400">
-                              SUCCESS
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                      {bookings.length === 0 && (
-                        <tr>
-                          <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                            No payment history found.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            ) : activeTab === "Messages" ? (
-              <section className="bg-[#1e293b] rounded-2xl shadow-sm border border-white/10 p-6">
-                <h2 className="text-xl font-bold text-white mb-6">Messages</h2>
-                <div className="space-y-4">
-                  {messages.length > 0 ? (
-                    messages.map((msg) => (
-                      <div key={msg.id} className="p-4 rounded-xl border border-white/10 hover:bg-white/5 transition-colors">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-semibold text-white">{msg.subject || "No Subject"}</h4>
-                          <span className="text-xs text-gray-500">{new Date(msg.created_at).toLocaleDateString()}</span>
-                        </div>
-                        <p className="text-sm text-gray-300 mb-2">{msg.message}</p>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <span className="font-medium text-gray-400">{msg.name || "Anonymous"}</span>
-                          <span>&bull;</span>
-                          <span>{msg.email || "No Email"}</span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      No messages received.
-                    </div>
-                  )}
-                </div>
-              </section>
             ) : activeTab === "Reviews" ? (
               <section className="bg-[#1e293b] rounded-2xl shadow-sm border border-white/10 p-6">
                 <h2 className="text-xl font-bold text-white mb-6">Reviews</h2>
@@ -981,23 +851,23 @@ export default function AdminDashboard() {
         showAddModal && (
           <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm">
             <div className="flex min-h-full items-center justify-center p-4">
-              <div className="bg-white rounded-3xl p-8 w-full max-w-2xl space-y-6 shadow-2xl my-8 relative">
+              <div className="bg-[#1e293b] rounded-3xl p-8 w-full max-w-2xl space-y-6 shadow-2xl my-8 relative border border-white/10">
                 <div className="space-y-1">
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-white">
                     {newLot.lotId ? "Modify Parking Spot" : "Add New Parking Spot"}
                   </h2>
-                  <p className="text-gray-500">Fill in the details below to {newLot.lotId ? "update the" : "list a new"} parking spot</p>
+                  <p className="text-gray-400">Fill in the details below to {newLot.lotId ? "update the" : "list a new"} parking spot</p>
                 </div>
 
                 <form onSubmit={handleAddLot} className="space-y-6">
 
                   {/* Spot Name */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-900">Spot Name *</label>
+                    <label className="text-sm font-semibold text-gray-300">Spot Name *</label>
                     <input
                       type="text"
                       placeholder="e.g., Downtown Spot A1"
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       value={newLot.name}
                       onChange={(e) => setNewLot({ ...newLot, name: e.target.value })}
                       required
@@ -1006,22 +876,22 @@ export default function AdminDashboard() {
 
                   {/* City (Read-Only) */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-900">City</label>
+                    <label className="text-sm font-semibold text-gray-300">City</label>
                     <input
                       type="text"
                       disabled
-                      className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed"
                       value={localStorage.getItem("pe_city") || "Hubli"}
                     />
                   </div>
 
                   {/* Location */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-900">Location *</label>
+                    <label className="text-sm font-semibold text-gray-300">Location *</label>
                     <input
                       type="text"
                       placeholder="e.g., 123 Main Street, Downtown"
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       value={newLot.address}
                       onChange={(e) => setNewLot({ ...newLot, address: e.target.value })}
                       required
@@ -1031,22 +901,22 @@ export default function AdminDashboard() {
                   {/* Coordinates */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold text-gray-900">Latitude *</label>
+                      <label className="text-sm font-semibold text-gray-300">Latitude *</label>
                       <input
                         type="text"
                         placeholder="e.g., 12.9716"
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         value={newLot.latitude}
                         onChange={(e) => setNewLot({ ...newLot, latitude: e.target.value })}
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-semibold text-gray-900">Longitude *</label>
+                      <label className="text-sm font-semibold text-gray-300">Longitude *</label>
                       <input
                         type="text"
                         placeholder="e.g., 77.5946"
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         value={newLot.longitude}
                         onChange={(e) => setNewLot({ ...newLot, longitude: e.target.value })}
                         required
@@ -1060,7 +930,7 @@ export default function AdminDashboard() {
                       href="https://www.google.com/maps"
                       target="_blank"
                       rel="noreferrer"
-                      className="text-xs text-blue-600 hover:underline"
+                      className="text-xs text-blue-400 hover:underline"
                     >
                       Open Google Maps to find coordinates
                     </a>
@@ -1068,18 +938,18 @@ export default function AdminDashboard() {
 
                   {/* Allowed Vehicle Types */}
                   <div className="space-y-3">
-                    <label className="text-sm font-semibold text-gray-900">Allowed Vehicle Types *</label>
-                    <p className="text-xs text-gray-500 -mt-2 mb-2">Select which types of vehicles can park in this spot</p>
+                    <label className="text-sm font-semibold text-gray-300">Allowed Vehicle Types *</label>
+                    <p className="text-xs text-gray-400 -mt-2 mb-2">Select which types of vehicles can park in this spot</p>
                     <div className="grid md:grid-cols-2 gap-4">
                       {/* Regular Vehicles */}
-                      <div className="p-4 rounded-xl border border-gray-200 space-y-3">
-                        <h4 className="text-sm font-medium text-gray-700 text-blue-900">Regular Vehicles</h4>
+                      <div className="p-4 rounded-xl border border-white/10 space-y-3">
+                        <h4 className="text-sm font-medium text-blue-400">Regular Vehicles</h4>
                         <div className="space-y-2">
                           {VEHICLE_TYPES.filter(t => t.group === 'regular').map(type => (
                             <label key={type.id} className="flex items-center gap-3 cursor-pointer">
                               <input
                                 type="checkbox"
-                                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
                                 checked={newLot.vehicleTypes[type.id]}
                                 onChange={(e) => {
                                   const isChecked = e.target.checked;
@@ -1094,15 +964,15 @@ export default function AdminDashboard() {
                                   }));
                                 }}
                               />
-                              <span className="text-sm text-gray-700">{type.label}</span>
+                              <span className="text-sm text-gray-300">{type.label}</span>
                             </label>
                           ))}
                         </div>
                       </div>
 
                       {/* EV Vehicles */}
-                      <div className="p-4 rounded-xl border border-green-100 bg-green-50/30 space-y-3">
-                        <h4 className="text-sm font-medium text-green-700 flex items-center gap-2">
+                      <div className="p-4 rounded-xl border border-white/10 bg-white/5 space-y-3">
+                        <h4 className="text-sm font-medium text-green-400 flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-green-500"></span>
                           Electric Vehicles (EV)
                         </h4>
@@ -1111,7 +981,7 @@ export default function AdminDashboard() {
                             <label key={type.id} className="flex items-center gap-3 cursor-pointer">
                               <input
                                 type="checkbox"
-                                className="w-5 h-5 rounded border-green-300 text-green-600 focus:ring-green-500"
+                                className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-green-600 focus:ring-green-500"
                                 checked={newLot.vehicleTypes[type.id]}
                                 onChange={(e) => {
                                   const isChecked = e.target.checked;
@@ -1125,14 +995,14 @@ export default function AdminDashboard() {
                                   }));
                                 }}
                               />
-                              <span className="text-sm text-gray-700">{type.label}</span>
+                              <span className="text-sm text-gray-300">{type.label}</span>
                             </label>
                           ))}
                         </div>
                         {/* EV Note */}
-                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-100 rounded-lg flex items-start gap-2">
-                          <span className="text-yellow-600 text-xs">💡</span>
-                          <p className="text-xs text-yellow-700">
+                        <div className="mt-2 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2">
+                          <span className="text-yellow-500 text-xs">💡</span>
+                          <p className="text-xs text-yellow-500">
                             Consider enabling "EV Charging" in features below
                           </p>
                         </div>
@@ -1142,31 +1012,31 @@ export default function AdminDashboard() {
 
                   {/* Pricing for Selected Vehicle Types */}
                   <div className="space-y-4">
-                    <label className="text-sm font-semibold text-gray-900">Pricing for Selected Vehicle Types *</label>
-                    <p className="text-xs text-gray-500 -mt-3">Set pricing for each vehicle type. At least hourly pricing is required.</p>
+                    <label className="text-sm font-semibold text-gray-300">Pricing for Selected Vehicle Types *</label>
+                    <p className="text-xs text-gray-400 -mt-3">Set pricing for each vehicle type. At least hourly pricing is required.</p>
 
                     {VEHICLE_TYPES.filter(type => newLot.vehicleTypes[type.id]).length === 0 && (
-                      <div className="text-sm text-gray-500 italic p-4 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-center">
+                      <div className="text-sm text-gray-500 italic p-4 bg-white/5 rounded-xl border border-dashed border-white/10 text-center">
                         Select vehicle types above to set pricing
                       </div>
                     )}
 
                     <div className="space-y-4">
                       {VEHICLE_TYPES.filter(type => newLot.vehicleTypes[type.id]).map(type => (
-                        <div key={type.id} className={`p-4 rounded-xl border ${type.group === 'ev' ? 'border-green-100 bg-green-50/10' : 'border-gray-200 bg-white'}`}>
+                        <div key={type.id} className={`p-4 rounded-xl border ${type.group === 'ev' ? 'border-green-500/20 bg-green-500/5' : 'border-white/10 bg-white/5'}`}>
                           <div className="flex items-center gap-2 mb-3">
                             {type.group === 'ev' && <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>}
-                            <h4 className={`text-sm font-medium ${type.group === 'ev' ? 'text-green-800' : 'text-gray-900'}`}>{type.label}</h4>
+                            <h4 className={`text-sm font-medium ${type.group === 'ev' ? 'text-green-400' : 'text-gray-200'}`}>{type.label}</h4>
                           </div>
 
                           <div className="grid grid-cols-4 gap-4">
                             <div className="space-y-1">
-                              <label className="text-xs text-gray-500">Capacity *</label>
+                              <label className="text-xs text-gray-400">Capacity *</label>
                               <input
                                 type="number"
                                 min="1"
                                 placeholder="10"
-                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                 value={newLot.capacity[type.id] || ""}
                                 onChange={(e) => setNewLot(prev => ({
                                   ...prev,
@@ -1179,12 +1049,12 @@ export default function AdminDashboard() {
                               />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-xs text-gray-500">Per Hour (₹) *</label>
+                              <label className="text-xs text-gray-400">Per Hour (₹) *</label>
                               <input
                                 type="number"
                                 min="0"
                                 placeholder="10"
-                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                 value={newLot.pricing[type.id]?.hourly || ""}
                                 onChange={(e) => setNewLot(prev => ({
                                   ...prev,
@@ -1197,12 +1067,12 @@ export default function AdminDashboard() {
                               />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-xs text-gray-500">Per Day (₹)</label>
+                              <label className="text-xs text-gray-400">Per Day (₹)</label>
                               <input
                                 type="number"
                                 min="0"
                                 placeholder="50"
-                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                 value={newLot.pricing[type.id]?.daily || ""}
                                 onChange={(e) => setNewLot(prev => ({
                                   ...prev,
@@ -1214,12 +1084,12 @@ export default function AdminDashboard() {
                               />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-xs text-gray-500">Per Month (₹)</label>
+                              <label className="text-xs text-gray-400">Per Month (₹)</label>
                               <input
                                 type="number"
                                 min="0"
                                 placeholder="800"
-                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                 value={newLot.pricing[type.id]?.monthly || ""}
                                 onChange={(e) => setNewLot(prev => ({
                                   ...prev,
@@ -1238,7 +1108,7 @@ export default function AdminDashboard() {
 
                   {/* Images */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-900">Parking Spot Images</label>
+                    <label className="text-sm font-semibold text-gray-300">Parking Spot Images</label>
 
                     <input
                       type="file"
@@ -1252,7 +1122,7 @@ export default function AdminDashboard() {
                     {newLot.images.length > 0 ? (
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {newLot.images.map((img, index) => (
-                          <div key={index} className="relative aspect-video rounded-xl overflow-hidden group border border-gray-200">
+                          <div key={index} className="relative aspect-video rounded-xl overflow-hidden group border border-white/10">
                             <img src={img.preview} alt={`Preview ${index}`} className="w-full h-full object-cover" />
                             <button
                               type="button"
@@ -1267,35 +1137,35 @@ export default function AdminDashboard() {
                         ))}
                         <div
                           onClick={() => fileInputRef.current.click()}
-                          className="border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all aspect-video"
+                          className="border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-500 hover:bg-white/5 transition-all aspect-video"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-gray-400 mb-2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                           </svg>
-                          <span className="text-xs text-gray-500 font-medium">Add More</span>
+                          <span className="text-xs text-gray-400 font-medium">Add More</span>
                         </div>
                       </div>
                     ) : (
                       <div
                         onClick={() => fileInputRef.current.click()}
-                        className="border-2 border-dashed border-gray-200 rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all"
+                        className="border-2 border-dashed border-white/10 rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-500 hover:bg-white/5 transition-all"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-gray-400 mb-3">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
                         </svg>
-                        <p className="text-sm text-gray-600 font-medium">Click to upload images</p>
-                        <p className="text-xs text-gray-400 mt-1">PNG, JPG, JPEG up to 10MB each</p>
+                        <p className="text-sm text-gray-400 font-medium">Click to upload images</p>
+                        <p className="text-xs text-gray-500 mt-1">PNG, JPG, JPEG up to 10MB each</p>
                       </div>
                     )}
                   </div>
 
                   {/* Features & Amenities */}
                   <div className="space-y-4">
-                    <h3 className="text-sm font-semibold text-gray-900">Features & Amenities</h3>
+                    <h3 className="text-sm font-semibold text-gray-300">Features & Amenities</h3>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-gray-900">Covered Parking</p>
+                          <p className="text-sm font-medium text-white">Covered Parking</p>
                           <p className="text-xs text-gray-500">Protected from weather</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
@@ -1305,13 +1175,13 @@ export default function AdminDashboard() {
                             checked={newLot.amenities.covered}
                             onChange={(e) => setNewLot({ ...newLot, amenities: { ...newLot.amenities, covered: e.target.checked } })}
                           />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                         </label>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-gray-900">EV Charging</p>
+                          <p className="text-sm font-medium text-white">EV Charging</p>
                           <p className="text-xs text-gray-500">Electric vehicle charging available</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
@@ -1321,13 +1191,13 @@ export default function AdminDashboard() {
                             checked={newLot.amenities.evCharging}
                             onChange={(e) => setNewLot({ ...newLot, amenities: { ...newLot.amenities, evCharging: e.target.checked } })}
                           />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                         </label>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-gray-900">Security/CCTV</p>
+                          <p className="text-sm font-medium text-white">Security/CCTV</p>
                           <p className="text-xs text-gray-500">Video surveillance installed</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
@@ -1337,13 +1207,13 @@ export default function AdminDashboard() {
                             checked={newLot.amenities.cctv}
                             onChange={(e) => setNewLot({ ...newLot, amenities: { ...newLot.amenities, cctv: e.target.checked } })}
                           />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                         </label>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-gray-900">24/7 Access</p>
+                          <p className="text-sm font-medium text-white">24/7 Access</p>
                           <p className="text-xs text-gray-500">Available anytime</p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
@@ -1353,28 +1223,28 @@ export default function AdminDashboard() {
                             checked={newLot.amenities.access247}
                             onChange={(e) => setNewLot({ ...newLot, amenities: { ...newLot.amenities, access247: e.target.checked } })}
                           />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                         </label>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-4 pt-4 border-t border-gray-100">
+                  <div className="flex justify-end gap-4 pt-4 border-t border-white/10">
                     <button
                       type="button"
                       onClick={() => setShowAddModal(false)}
-                      className="px-6 py-2 rounded-xl text-gray-600 hover:bg-gray-100 font-medium border border-gray-200"
+                      className="px-6 py-2 rounded-xl text-gray-300 hover:bg-white/5 font-medium border border-white/10"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="px-6 py-2 rounded-xl bg-[#0F172A] text-white font-bold hover:bg-[#1E293B] shadow-lg flex items-center gap-2"
+                      className="px-6 py-2 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg flex items-center gap-2"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                       </svg>
-                      Add Parking Spot
+                      {newLot.lotId ? "Update Spot" : "Add Parking Spot"}
                     </button>
                   </div>
                 </form>

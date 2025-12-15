@@ -384,8 +384,8 @@ export const cancelBooking = async (req, res) => {
 
       let refundAmount = 0;
       if (diffMins > 30) {
-        // Full Refund
-        refundAmount = booking.amount_paid; // Assuming amount_paid is in tokens now
+        // Full Refund: Ensure amount is an integer for token logic
+        refundAmount = Math.floor(Number(booking.amount_paid));
       }
 
       // Update Booking
