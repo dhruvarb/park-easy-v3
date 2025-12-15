@@ -86,36 +86,54 @@ export const upsertParkingLot = async (req, res, next) => {
     // Handle images
     let imagePaths = [];
     if (req.files && req.files.length > 0) {
-      if (!env.supabaseUrl || !env.supabaseKey) {
-        console.warn("Supabase credentials missing. Uploads will fail or be empty.");
+      const { createClient } = await import('@supabase/supabase-js');
+      let supabase = null;
+      if (env.supabaseUrl && env.supabaseKey) {
+        supabase = createClient(env.supabaseUrl, env.supabaseKey);
       } else {
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(env.supabaseUrl, env.supabaseKey);
+        console.warn("Supabase credentials missing. Switching to Base64 storage.");
+      }
 
-        for (const file of req.files) {
-          const fileExt = file.originalname.split('.').pop();
-          const fileName = `${req.user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      for (const file of req.files) {
+        let uploadedUrl = null;
 
-          const { data, error } = await supabase
-            .storage
-            .from('parking-lot-images') // Ensure this bucket exists in Supabase
-            .upload(fileName, file.buffer, {
-              contentType: file.mimetype,
-              upsert: false
-            });
+        // Try Supabase Upload if client exists
+        if (supabase) {
+          try {
+            const fileExt = file.originalname.split('.').pop();
+            const fileName = `${req.user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-          if (error) {
-            console.error("Supabase Upload Error:", error);
-            // Fallback or skip? For now, we allow partial success but log error.
-            continue;
+            const { error: uploadError } = await supabase
+              .storage
+              .from('parking-lot-images')
+              .upload(fileName, file.buffer, {
+                contentType: file.mimetype,
+                upsert: false
+              });
+
+            if (!uploadError) {
+              const { data: { publicUrl } } = supabase
+                .storage
+                .from('parking-lot-images')
+                .getPublicUrl(fileName);
+              uploadedUrl = publicUrl;
+            } else {
+              console.error("Supabase Upload Error:", uploadError);
+            }
+          } catch (err) {
+            console.error("Supabase Exception:", err);
           }
+        }
 
-          const { data: { publicUrl } } = supabase
-            .storage
-            .from('parking-lot-images')
-            .getPublicUrl(fileName);
+        // Fallback to Base64 if upload failed or no supabase
+        if (!uploadedUrl) {
+          console.log("Using Base64 fallback for image:", file.originalname);
+          const base64String = file.buffer.toString('base64');
+          uploadedUrl = `data:${file.mimetype};base64,${base64String}`;
+        }
 
-          imagePaths.push(publicUrl);
+        if (uploadedUrl) {
+          imagePaths.push(uploadedUrl);
         }
       }
     }
