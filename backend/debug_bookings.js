@@ -19,13 +19,14 @@ const pool = new Pool({
 async function checkBookings() {
     const client = await pool.connect();
     try {
-        const userRes = await client.query("SELECT id FROM users WHERE email = 'suprit@gmail.com'");
+        const email = 'uday@gmail.com';
+        const userRes = await client.query("SELECT id FROM users WHERE email = $1", [email]);
         if (userRes.rows.length === 0) {
-            console.log("User not found");
+            console.log(`User ${email} not found`);
             return;
         }
         const userId = userRes.rows[0].id;
-        console.log("User ID:", userId);
+        console.log(`User ID for ${email}:`, userId);
 
         console.log("Running listBookings query...");
         const result = await client.query(

@@ -232,6 +232,7 @@ export const createBooking = async (req, res, next) => {
 
 export const listBookings = async (req, res) => {
   try {
+    console.log("Fetching bookings for user:", req.user.id);
     const result = await query(
       `
       SELECT 
@@ -404,6 +405,7 @@ export const cancelBooking = async (req, res) => {
       res.json({ message: "Booking cancelled", refund: refundAmount });
     } catch (err) {
       await client.query('ROLLBACK');
+      console.error("Cancel booking inner error:", err.message);
       res.status(400).json({ message: err.message });
     } finally {
       client.release();

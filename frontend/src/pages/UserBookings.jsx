@@ -68,7 +68,7 @@ export default function UserBookings() {
             fetchBookings();
         } catch (error) {
             console.error(error);
-            alert("Failed to cancel booking.");
+            alert(error.response?.data?.message || "Failed to cancel booking.");
         }
     };
 
