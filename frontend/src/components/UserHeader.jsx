@@ -132,19 +132,10 @@ export default function UserHeader() {
                     My Bookings
                 </Link>
                 <Link
-                    to="/favorites"
-                    className={`text-sm font-medium transition-colors ${isActive('/favorites') ? 'text-brandSky' : 'text-gray-400 hover:text-white'}`}
-                >
-                    Favorites
-                </Link>
-                <Link
                     to="/about"
                     className={`text-sm font-medium transition-colors ${isActive('/about') ? 'text-brandSky' : 'text-gray-400 hover:text-white'}`}
                 >
                     About Us
-                </Link>
-                <Link to="#" className="text-sm font-medium text-gray-400 hover:text-white">
-                    Promotions
                 </Link>
             </nav>
 

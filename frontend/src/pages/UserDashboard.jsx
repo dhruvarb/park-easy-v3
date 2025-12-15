@@ -16,7 +16,6 @@ export default function UserDashboard() {
     evOnly: false,
   });
   const [slots, setSlots] = useState([]);
-  const [favorites, setFavorites] = useState([]);
   const [viewMode, setViewMode] = useState("list"); // 'list' or 'map'
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [walletBalance, setWalletBalance] = useState(0);
@@ -24,7 +23,6 @@ export default function UserDashboard() {
 
   useEffect(() => {
     fetchSlots();
-    fetchFavorites();
     fetchBalance();
   }, [filters]);
 
@@ -53,29 +51,6 @@ export default function UserDashboard() {
     }
   };
 
-  const fetchFavorites = async () => {
-    try {
-      const response = await api.get("/user/favorites");
-      setFavorites(response.favorites.map(f => f.id));
-    } catch (error) {
-      console.error("Failed to fetch favorites", error);
-    }
-  };
-
-  const handleToggleFavorite = async (slot) => {
-    try {
-      if (favorites.includes(slot.id)) {
-        await api.delete(`/user/favorites/${slot.id}`);
-        setFavorites(prev => prev.filter(id => id !== slot.id));
-      } else {
-        await api.post("/user/favorites", { lotId: slot.id });
-        setFavorites(prev => [...prev, slot.id]);
-      }
-    } catch (error) {
-      console.error("Failed to toggle favorite", error);
-    }
-  };
-
   const handleBook = (slot) => {
     setSelectedSlot(slot);
   };
@@ -85,6 +60,20 @@ export default function UserDashboard() {
     fetchSlots(); // Refresh slots to update availability
     fetchBalance(); // Refresh balance after booking
   };
+
+  /* Search & Filter State */
+  const [searchQuery, setSearchQuery] = useState("");
+
+  /* Filtered Slots Logic */
+  const filteredSlots = slots.filter(slot => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      slot.name.toLowerCase().includes(q) ||
+      slot.address.toLowerCase().includes(q) ||
+      (slot.city && slot.city.toLowerCase().includes(q))
+    );
+  });
 
   return (
     <>
@@ -115,42 +104,58 @@ export default function UserDashboard() {
               </button>
             </div>
 
-            <header className="rounded-[32px] border border-white/15 bg-white/5 backdrop-blur-2xl p-6 flex flex-wrap gap-6 justify-between items-center">
-              <div>
-                <p className="text-xs tracking-[0.3em] uppercase text-brandSky">
-                  Explorer
-                </p>
-                <h1 className="text-3xl font-semibold">Nearby parking slots</h1>
-                <p className="text-sm text-white/70">
-                  Showing {filters.evOnly ? "EV-ready" : "all"} slots for{" "}
-                  {filters.vehicle.replace("-", " ")} ({filters.duration})
-                </p>
+            <header className="space-y-6">
+              <div className="flex flex-wrap gap-6 justify-between items-end">
+                <div>
+                  <p className="text-xs tracking-[0.3em] uppercase text-brandSky">
+                    Explorer
+                  </p>
+                  <h1 className="text-3xl font-semibold">Nearby parking slots</h1>
+                  <p className="text-sm text-white/70">
+                    Showing {filters.evOnly ? "EV-ready" : "all"} slots for{" "}
+                    {filters.vehicle.replace("-", " ")} ({filters.duration})
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setViewMode(viewMode === "list" ? "map" : "list")}
+                    className={`px-4 py-3 rounded-2xl border text-sm font-semibold transition-colors ${viewMode === "map"
+                      ? "bg-brandSky text-brandNight border-brandSky"
+                      : "border-white/20 hover:bg-white/10"
+                      }`}
+                  >
+                    {viewMode === "list" ? "Live Map" : "List View"}
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setViewMode(viewMode === "list" ? "map" : "list")}
-                  className={`px-4 py-3 rounded-2xl border text-sm font-semibold transition-colors ${viewMode === "map"
-                    ? "bg-brandSky text-brandNight border-brandSky"
-                    : "border-white/20 hover:bg-white/10"
-                    }`}
-                >
-                  {viewMode === "list" ? "Live Map" : "List View"}
-                </button>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-400">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search by area, landmark, or city..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brandSky/50 focus:border-transparent transition-all"
+                />
               </div>
             </header>
 
             {viewMode === "map" ? (
-              <MapView slots={slots} />
+              <MapView slots={filteredSlots} />
             ) : (
               <div className="grid md:grid-cols-2 gap-6">
-                {slots.length > 0 ? (
-                  slots.map((slot) => (
+                {filteredSlots.length > 0 ? (
+                  filteredSlots.map((slot) => (
                     <ParkingCard
                       key={slot.id}
                       slot={slot}
                       onBook={handleBook}
-                      isFavorite={favorites.includes(slot.id)}
-                      onToggleFavorite={handleToggleFavorite}
                       filterDuration={filters.duration}
                     />
                   ))
