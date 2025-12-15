@@ -126,9 +126,9 @@ export const createBooking = async (req, res, next) => {
     // For simplicity in this version, we might just look for is_available = true.
     // Ideally we should check for overlapping bookings.
 
-    // Updated logic: Select id AND slot_number
+    // Updated logic: Select id AND label (slot number)
     const slotResult = await query(
-      `SELECT id, slot_number FROM parking_slots 
+      `SELECT id, label FROM parking_slots 
        WHERE lot_id = $1 AND vehicle_type = $2 AND is_available = true
        LIMIT 1`,
       [payload.lotId, payload.vehicleType]
@@ -139,7 +139,7 @@ export const createBooking = async (req, res, next) => {
     }
 
     const slotId = slotResult.rows[0].id;
-    const slotNumber = slotResult.rows[0].slot_number;
+    const slotNumber = slotResult.rows[0].label;
 
 
     // Fetch admin's UPI ID
@@ -189,9 +189,7 @@ export const createBooking = async (req, res, next) => {
 
       const booking = rows[0];
 
-      // Fetch slot label for response
-      const slotRes = await client.query('SELECT label FROM parking_slots WHERE id = $1', [slotId]);
-      const slotNumber = slotRes.rows[0]?.label || 'Assigned';
+      // Fetch slot label for response (Already fetched above as slotNumber)
 
       await client.query('COMMIT');
 
