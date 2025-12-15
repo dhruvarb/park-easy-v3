@@ -83,57 +83,47 @@ export const upsertParkingLot = async (req, res, next) => {
 
     const payload = lotSchema.parse(req.body);
 
-    // Handle images
+    // Handle images with Cloudinary
     let imagePaths = [];
     if (req.files && req.files.length > 0) {
-      const { createClient } = await import('@supabase/supabase-js');
-      let supabase = null;
-      if (env.supabaseUrl && env.supabaseKey) {
-        supabase = createClient(env.supabaseUrl, env.supabaseKey);
-      } else {
-        console.warn("Supabase credentials missing. Switching to Base64 storage.");
-      }
+      // Import Cloudinary and configure
+      const { v2: cloudinary } = await import('cloudinary');
+
+      cloudinary.config({
+        cloud_name: env.cloudinary.cloudName,
+        api_key: env.cloudinary.apiKey,
+        api_secret: env.cloudinary.apiSecret
+      });
 
       for (const file of req.files) {
-        let uploadedUrl = null;
+        try {
+          // Wrap upload_stream in a Promise since it uses a callback/stream
+          const result = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+              {
+                folder: 'park-easy/parking-lots',
+                resource_type: 'image',
+              },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+              }
+            );
+            // End the stream with the file buffer
+            uploadStream.end(file.buffer);
+          });
 
-        // Try Supabase Upload if client exists
-        if (supabase) {
-          try {
-            const fileExt = file.originalname.split('.').pop();
-            const fileName = `${req.user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-            const { error: uploadError } = await supabase
-              .storage
-              .from('parking-lot-images')
-              .upload(fileName, file.buffer, {
-                contentType: file.mimetype,
-                upsert: false
-              });
-
-            if (!uploadError) {
-              const { data: { publicUrl } } = supabase
-                .storage
-                .from('parking-lot-images')
-                .getPublicUrl(fileName);
-              uploadedUrl = publicUrl;
-            } else {
-              console.error("Supabase Upload Error:", uploadError);
-            }
-          } catch (err) {
-            console.error("Supabase Exception:", err);
+          if (result && result.secure_url) {
+            imagePaths.push(result.secure_url);
+            console.log("Cloudinary upload success:", result.secure_url);
           }
-        }
-
-        // Fallback to Base64 if upload failed or no supabase
-        if (!uploadedUrl) {
-          console.log("Using Base64 fallback for image:", file.originalname);
+        } catch (error) {
+          console.error("Cloudinary Upload Error:", error);
+          // Fallback to Base64 in case Cloudinary fails
+          console.warn("Falling back to Base64 for:", file.originalname);
           const base64String = file.buffer.toString('base64');
-          uploadedUrl = `data:${file.mimetype};base64,${base64String}`;
-        }
-
-        if (uploadedUrl) {
-          imagePaths.push(uploadedUrl);
+          const dataUri = `data:${file.mimetype};base64,${base64String}`;
+          imagePaths.push(dataUri);
         }
       }
     }

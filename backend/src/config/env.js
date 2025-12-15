@@ -18,6 +18,11 @@ const env = {
   tokenTtlHours: Number(process.env.TOKEN_TTL_HOURS || 12),
   supabaseUrl: process.env.SUPABASE_URL,
   supabaseKey: process.env.SUPABASE_KEY,
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+  }
 };
 
 export default env;
