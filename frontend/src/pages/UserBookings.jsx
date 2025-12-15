@@ -89,13 +89,15 @@ export default function UserBookings() {
         const now = new Date();
         const start = new Date(booking.start_time);
         const end = new Date(booking.end_time);
+        const isCancelled = booking.status === 'cancelled';
 
         if (activeTab === "Active") {
-            return start <= now && end >= now;
+            return start <= now && end >= now && !isCancelled;
         } else if (activeTab === "Upcoming") {
-            return start > now;
+            return start > now && !isCancelled;
         } else {
-            return end < now;
+            // Past: Time is past OR booking is cancelled
+            return end < now || isCancelled;
         }
     });
 
@@ -106,9 +108,11 @@ export default function UserBookings() {
         bookings.forEach((booking) => {
             const start = new Date(booking.start_time);
             const end = new Date(booking.end_time);
-            if (start <= now && end >= now) active++;
-            else if (start > now) upcoming++;
-            else if (end < now) past++;
+            const isCancelled = booking.status === 'cancelled';
+
+            if (start <= now && end >= now && !isCancelled) active++;
+            else if (start > now && !isCancelled) upcoming++;
+            else if (end < now || isCancelled) past++;
         });
 
         return { active, upcoming, past };
@@ -169,6 +173,11 @@ export default function UserBookings() {
                                                             'bg-yellow-50 text-yellow-600 border-yellow-200'
                                                         }`}>
                                                         Refund: {booking.refund_status}
+                                                    </span>
+                                                )}
+                                                {booking.status === 'cancelled' && (
+                                                    <span className="px-2 py-0.5 rounded text-xs font-medium border bg-red-50 text-red-600 border-red-200">
+                                                        Cancelled
                                                     </span>
                                                 )}
                                             </div>
