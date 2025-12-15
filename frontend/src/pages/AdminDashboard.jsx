@@ -586,10 +586,10 @@ export default function AdminDashboard() {
           </button>
 
           {showProfileMenu && (
-            <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50">
+            <div className="absolute right-0 top-12 w-48 bg-[#1e293b] rounded-xl shadow-xl border border-white/10 py-1 z-50">
               <Link
                 to="/admin/profile"
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white"
                 onClick={() => setShowProfileMenu(false)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
@@ -599,7 +599,7 @@ export default function AdminDashboard() {
               </Link>
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left"
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-white/5 text-left"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
@@ -759,10 +759,10 @@ export default function AdminDashboard() {
                 </div>
               </section>
             ) : activeTab === "Bookings" ? (
-              <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <section className="bg-[#1e293b] rounded-2xl shadow-sm border border-white/10 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm text-gray-600">
-                    <thead className="bg-gray-50 text-gray-900 font-semibold border-b border-gray-100">
+                  <table className="w-full text-left text-sm text-gray-400">
+                    <thead className="bg-white/5 text-gray-200 font-semibold border-b border-white/10">
                       <tr>
                         <th className="px-6 py-4">Spot Name</th>
                         <th className="px-6 py-4">Customer</th>
@@ -772,19 +772,19 @@ export default function AdminDashboard() {
                         <th className="px-6 py-4">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-white/10">
                       {bookings.length > 0 ? (
                         bookings.map((booking) => (
-                          <tr key={booking.id} className="hover:bg-gray-50/50 transition-colors">
-                            <td className="px-6 py-4 font-medium text-gray-900">{booking.spotName}</td>
+                          <tr key={booking.id} className="hover:bg-white/5 transition-colors">
+                            <td className="px-6 py-4 font-medium text-white">{booking.spotName}</td>
                             <td className="px-6 py-4">{booking.customerName}</td>
                             <td className="px-6 py-4">{booking.date}</td>
                             <td className="px-6 py-4">{booking.timeSlot}</td>
-                            <td className="px-6 py-4 font-medium text-gray-900">₹{booking.amount}</td>
+                            <td className="px-6 py-4 font-medium text-white">₹{booking.amount}</td>
                             <td className="px-6 py-4">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'confirmed' ? 'bg-green-50 text-green-700' :
-                                booking.status === 'pending' ? 'bg-yellow-50 text-yellow-700' :
-                                  'bg-gray-100 text-gray-600'
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'confirmed' ? 'bg-green-500/10 text-green-400' :
+                                booking.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400' :
+                                  'bg-red-500/10 text-red-400'
                                 }`}>
                                 {booking.status}
                               </span>
@@ -806,28 +806,28 @@ export default function AdminDashboard() {
               <div className="space-y-6">
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                    <p className="text-sm text-gray-500 mb-1">Total Revenue (30 Days)</p>
-                    <h3 className="text-3xl font-bold text-gray-900">₹{earnings?.totalRevenue || 0}</h3>
+                  <div className="bg-[#1e293b] p-6 rounded-2xl border border-white/10 shadow-sm">
+                    <p className="text-sm text-gray-400 mb-1">Total Revenue (30 Days)</p>
+                    <h3 className="text-3xl font-bold text-white">₹{earnings?.totalRevenue || 0}</h3>
                   </div>
-                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                    <p className="text-sm text-gray-500 mb-1">Total Bookings (30 Days)</p>
-                    <h3 className="text-3xl font-bold text-gray-900">{earnings?.totalBookings || 0}</h3>
+                  <div className="bg-[#1e293b] p-6 rounded-2xl border border-white/10 shadow-sm">
+                    <p className="text-sm text-gray-400 mb-1">Total Bookings (30 Days)</p>
+                    <h3 className="text-3xl font-bold text-white">{earnings?.totalBookings || 0}</h3>
                   </div>
                 </div>
 
                 {/* Daily Breakdown */}
-                <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Daily Earnings</h3>
+                <section className="bg-[#1e293b] rounded-2xl shadow-sm border border-white/10 p-6">
+                  <h3 className="text-lg font-bold text-white mb-4">Daily Earnings</h3>
                   <div className="space-y-3">
                     {earnings?.daily?.length > 0 ? (
                       earnings.daily.map((day, idx) => (
-                        <div key={idx} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-xl transition-colors border border-transparent hover:border-gray-100">
+                        <div key={idx} className="flex justify-between items-center p-3 hover:bg-white/5 rounded-xl transition-colors border border-transparent hover:border-white/10">
                           <div>
-                            <p className="font-medium text-gray-900">{new Date(day.date).toLocaleDateString()}</p>
-                            <p className="text-xs text-gray-500">{day.bookingscount} bookings</p>
+                            <p className="font-medium text-white">{new Date(day.date).toLocaleDateString()}</p>
+                            <p className="text-xs text-gray-400">{day.bookingscount} bookings</p>
                           </div>
-                          <p className="font-bold text-gray-900">₹{day.amount}</p>
+                          <p className="font-bold text-white">₹{day.amount}</p>
                         </div>
                       ))
                     ) : (
@@ -837,10 +837,10 @@ export default function AdminDashboard() {
                 </section>
               </div>
             ) : activeTab === "Payments" ? (
-              <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <section className="bg-[#1e293b] rounded-2xl shadow-sm border border-white/10 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm text-gray-600">
-                    <thead className="bg-gray-50 text-gray-900 font-semibold border-b border-gray-100">
+                  <table className="w-full text-left text-sm text-gray-400">
+                    <thead className="bg-white/5 text-gray-200 font-semibold border-b border-white/10">
                       <tr>
                         <th className="px-6 py-4">Date</th>
                         <th className="px-6 py-4">Booking ID</th>
@@ -849,16 +849,16 @@ export default function AdminDashboard() {
                         <th className="px-6 py-4">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-white/10">
                       {/* We can reuse bookings or fetch separate payments if needed. For now, let's assume bookings have payment info or we add a fetchPayments call */}
                       {bookings.map((booking) => (
-                        <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
+                        <tr key={booking.id} className="hover:bg-white/5 transition-colors">
                           <td className="px-6 py-4">{new Date(booking.created_at).toLocaleDateString()}</td>
-                          <td className="px-6 py-4 font-mono text-xs">{booking.id.slice(0, 8)}...</td>
+                          <td className="px-6 py-4 font-mono text-xs text-gray-500">{booking.id.slice(0, 8)}...</td>
                           <td className="px-6 py-4">Payment</td>
-                          <td className="px-6 py-4 font-medium text-gray-900">₹{booking.amount_paid}</td>
+                          <td className="px-6 py-4 font-medium text-white">₹{booking.amount_paid}</td>
                           <td className="px-6 py-4">
-                            <span className="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-700">
+                            <span className="px-2 py-1 rounded text-xs font-semibold bg-green-500/10 text-green-400">
                               SUCCESS
                             </span>
                           </td>
@@ -866,7 +866,7 @@ export default function AdminDashboard() {
                       ))}
                       {bookings.length === 0 && (
                         <tr>
-                          <td colSpan="5" className="px-6 py-8 text-center text-gray-400">
+                          <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
                             No payment history found.
                           </td>
                         </tr>
@@ -876,19 +876,19 @@ export default function AdminDashboard() {
                 </div>
               </section>
             ) : activeTab === "Messages" ? (
-              <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">Messages</h2>
+              <section className="bg-[#1e293b] rounded-2xl shadow-sm border border-white/10 p-6">
+                <h2 className="text-xl font-bold text-white mb-6">Messages</h2>
                 <div className="space-y-4">
                   {messages.length > 0 ? (
                     messages.map((msg) => (
-                      <div key={msg.id} className="p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
+                      <div key={msg.id} className="p-4 rounded-xl border border-white/10 hover:bg-white/5 transition-colors">
                         <div className="flex justify-between items-start mb-2">
-                          <h4 className="font-semibold text-gray-900">{msg.subject || "No Subject"}</h4>
+                          <h4 className="font-semibold text-white">{msg.subject || "No Subject"}</h4>
                           <span className="text-xs text-gray-500">{new Date(msg.created_at).toLocaleDateString()}</span>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{msg.message}</p>
+                        <p className="text-sm text-gray-300 mb-2">{msg.message}</p>
                         <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <span className="font-medium text-gray-700">{msg.name || "Anonymous"}</span>
+                          <span className="font-medium text-gray-400">{msg.name || "Anonymous"}</span>
                           <span>&bull;</span>
                           <span>{msg.email || "No Email"}</span>
                         </div>
@@ -902,15 +902,15 @@ export default function AdminDashboard() {
                 </div>
               </section>
             ) : activeTab === "Reviews" ? (
-              <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">Reviews</h2>
+              <section className="bg-[#1e293b] rounded-2xl shadow-sm border border-white/10 p-6">
+                <h2 className="text-xl font-bold text-white mb-6">Reviews</h2>
                 <div className="space-y-4">
                   {reviews.length > 0 ? (
                     reviews.map((review) => (
-                      <div key={review.id} className="p-4 rounded-xl border border-gray-100">
+                      <div key={review.id} className="p-4 rounded-xl border border-white/10">
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <h4 className="font-semibold text-gray-900">{review.lotName}</h4>
+                            <h4 className="font-semibold text-white">{review.lotName}</h4>
                             <div className="flex items-center gap-1 text-yellow-400 text-sm">
                               {[...Array(5)].map((_, i) => (
                                 <svg key={i} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={i < review.rating ? "currentColor" : "none"} stroke="currentColor" strokeWidth={i < review.rating ? 0 : 1.5} className="w-4 h-4">
@@ -921,7 +921,7 @@ export default function AdminDashboard() {
                           </div>
                           <span className="text-xs text-gray-500">{new Date(review.created_at).toLocaleDateString()}</span>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">"{review.comment}"</p>
+                        <p className="text-sm text-gray-300 mb-2">"{review.comment}"</p>
                         <p className="text-xs text-gray-500 font-medium">- {review.userName}</p>
                       </div>
                     ))
@@ -933,18 +933,18 @@ export default function AdminDashboard() {
                 </div>
               </section>
             ) : activeTab === "Help & Support" ? (
-              <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 max-w-2xl mx-auto">
+              <section className="bg-[#1e293b] rounded-2xl shadow-sm border border-white/10 p-8 max-w-2xl mx-auto">
                 <div className="text-center mb-8">
-                  <h2 className="text-2xl font-bold text-gray-900">How can we help?</h2>
-                  <p className="text-gray-500 mt-2">Send us a message and we'll get back to you as soon as possible.</p>
+                  <h2 className="text-2xl font-bold text-white">How can we help?</h2>
+                  <p className="text-gray-400 mt-2">Send us a message and we'll get back to you as soon as possible.</p>
                 </div>
 
                 <form onSubmit={handleSupportSubmit} className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-900">Subject</label>
+                    <label className="text-sm font-semibold text-gray-300">Subject</label>
                     <input
                       type="text"
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                       placeholder="e.g., Issue with payments"
                       value={supportForm.subject}
                       onChange={(e) => setSupportForm({ ...supportForm, subject: e.target.value })}
@@ -952,10 +952,10 @@ export default function AdminDashboard() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-900">Message</label>
+                    <label className="text-sm font-semibold text-gray-300">Message</label>
                     <textarea
                       rows="5"
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+                      className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
                       placeholder="Describe your issue..."
                       value={supportForm.message}
                       onChange={(e) => setSupportForm({ ...supportForm, message: e.target.value })}
