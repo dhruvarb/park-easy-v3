@@ -3,8 +3,17 @@ import api from '../services/api';
 
 export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [startTime, setStartTime] = useState('09:00');
-    const [endTime, setEndTime] = useState('17:00');
+    // Set default start time to next full hour from now
+    const [startTime, setStartTime] = useState(() => {
+        const now = new Date();
+        now.setHours(now.getHours() + 1, 0, 0, 0);
+        return now.toTimeString().slice(0, 5);
+    });
+    const [endTime, setEndTime] = useState(() => {
+        const now = new Date();
+        now.setHours(now.getHours() + 2, 0, 0, 0);
+        return now.toTimeString().slice(0, 5);
+    });
     const [vehicleNumber, setVehicleNumber] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -73,6 +82,12 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
 
             if (start >= end) {
                 setError("End time must be after start time");
+                setLoading(false);
+                return;
+            }
+
+            if (start < new Date()) {
+                setError("Booking cannot be in the past.");
                 setLoading(false);
                 return;
             }
@@ -158,6 +173,7 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
                                     <input
                                         type="time"
                                         value={startTime}
+                                        min={date === new Date().toISOString().split('T')[0] ? new Date().toTimeString().slice(0, 5) : undefined}
                                         onChange={(e) => setStartTime(e.target.value)}
                                         className="w-full bg-brandNight border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-brandSky focus:outline-none [color-scheme:dark]"
                                         required
@@ -165,6 +181,7 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
                                     <input
                                         type="time"
                                         value={endTime}
+                                        min={startTime}
                                         onChange={(e) => setEndTime(e.target.value)}
                                         className="w-full bg-brandNight border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-brandSky focus:outline-none [color-scheme:dark]"
                                         required
@@ -224,8 +241,8 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
                                 type="submit"
                                 disabled={loading || isInsufficientFunds}
                                 className={`w-full font-semibold py-3 rounded-xl transition-all disabled:opacity-60 ${isInsufficientFunds
-                                        ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                                        : 'bg-brandSky text-brandNight hover:bg-brandSky/90'
+                                    ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                                    : 'bg-brandSky text-brandNight hover:bg-brandSky/90'
                                     }`}
                             >
                                 {loading ? 'Processing...' : isInsufficientFunds ? 'Insufficient Tokens' : `Pay 🪙${total}`}

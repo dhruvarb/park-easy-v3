@@ -189,6 +189,10 @@ export const createBooking = async (req, res, next) => {
 
       const booking = rows[0];
 
+      // Fetch slot label for response
+      const slotRes = await client.query('SELECT label FROM parking_slots WHERE id = $1', [slotId]);
+      const slotNumber = slotRes.rows[0]?.label || 'Assigned';
+
       await client.query('COMMIT');
 
       return res.status(201).json({
