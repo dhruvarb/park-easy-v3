@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import UserHeader from "../components/UserHeader";
-import api from "../services/api";
+import { userApi } from "../services/api";
 
 export default function UserBookings() {
     const [bookings, setBookings] = useState([]);
@@ -17,7 +17,7 @@ export default function UserBookings() {
 
     const fetchBookings = async () => {
         try {
-            const response = await api.getBookings();
+            const response = await userApi.getBookings();
             setBookings(response.bookings);
         } catch (error) {
             console.error("Failed to fetch bookings", error);
@@ -36,7 +36,7 @@ export default function UserBookings() {
         if (!selectedBooking || !refundReason) return;
         setSubmittingRefund(true);
         try {
-            await api.requestRefund({
+            await userApi.requestRefund({
                 bookingId: selectedBooking.id,
                 reason: refundReason
             });
@@ -62,7 +62,7 @@ export default function UserBookings() {
     const handleCancelBooking = async (bookingId) => {
         if (!window.confirm("Are you sure you want to cancel? \n\nPolicy: \n> 30 mins before: Full Refund (Tokens). \n< 30 mins: No Refund.")) return;
         try {
-            const res = await api.post(`/user/bookings/${bookingId}/cancel`);
+            const res = await userApi.cancelBooking(bookingId);
             alert(res.message);
             if (res.refund > 0) alert(`Refunded ${res.refund} tokens.`);
             fetchBookings();
@@ -75,7 +75,7 @@ export default function UserBookings() {
     const handleCheckout = async (bookingId) => {
         if (!window.confirm("Confirm Check Out? Any overdue usage will incur penalty (10 Tokens/hr).")) return;
         try {
-            const res = await api.post(`/user/bookings/${bookingId}/checkout`);
+            const res = await userApi.checkoutBooking(bookingId);
             alert(res.message);
             if (res.penalty > 0) alert(`Penalty Charged: ${res.penalty} tokens.`);
             fetchBookings();

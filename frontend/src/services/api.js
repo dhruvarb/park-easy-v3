@@ -40,6 +40,9 @@ export const userApi = {
   getReviews: (id) => api.get(`/user/slots/${id}/reviews`),
   getPayments: () => api.get("/user/payments"),
   requestRefund: (data) => api.post("/user/refunds", data),
+  getBookings: () => api.get("/user/bookings"),
+  cancelBooking: (id) => api.post(`/user/bookings/${id}/cancel`),
+  checkoutBooking: (id) => api.post(`/user/bookings/${id}/checkout`),
 };
 
 export const adminApi = {
