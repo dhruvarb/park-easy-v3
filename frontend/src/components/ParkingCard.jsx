@@ -49,7 +49,7 @@ export default function ParkingCard({ slot, onBook, isFavorite, onToggleFavorite
           className={`h-36 w-full overflow-hidden ${isFull ? 'grayscale cursor-not-allowed' : 'cursor-pointer'}`}
         >
           <img
-            src={slot.images[0].startsWith('http') ? slot.images[0] : `${API_BASE}${slot.images[0]}`}
+            src={slot.images[0].startsWith('http') || slot.images[0].startsWith('data:') ? slot.images[0] : `${API_BASE}${slot.images[0]}`}
             alt={slot.name}
             className={`w-full h-full object-cover transition-transform duration-500 ${!isFull && "group-hover:scale-110"}`}
           />

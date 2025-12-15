@@ -137,7 +137,7 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
                         <div className="w-16 h-16 bg-white/5 rounded-xl flex-shrink-0 overflow-hidden">
                             {slot.images && slot.images.length > 0 ? (
                                 <img
-                                    src={`${import.meta.env.VITE_API_BASE || 'http://localhost:5000'}${slot.images[0]}`}
+                                    src={slot.images[0].startsWith('http') || slot.images[0].startsWith('data:') ? slot.images[0] : `${import.meta.env.VITE_API_BASE || 'http://localhost:5000'}${slot.images[0]}`}
                                     alt={slot.name}
                                     className="w-full h-full object-cover"
                                 />

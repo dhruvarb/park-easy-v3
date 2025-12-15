@@ -614,7 +614,7 @@ export default function AdminDashboard() {
                         <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-white/5 border border-white/10">
                           {lot.images && lot.images.length > 0 ? (
                             <img
-                              src={lot.images[0].startsWith('http') ? lot.images[0] : `${API_BASE}${lot.images[0]}`}
+                              src={lot.images[0].startsWith('http') || lot.images[0].startsWith('data:') ? lot.images[0] : `${API_BASE}${lot.images[0]}`}
                               alt={lot.name}
                               className="w-full h-full object-cover"
                             />
