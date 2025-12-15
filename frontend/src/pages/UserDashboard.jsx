@@ -105,30 +105,6 @@ export default function UserDashboard() {
             </div>
 
             <header className="space-y-6">
-              <div className="flex flex-wrap gap-6 justify-between items-end">
-                <div>
-                  <p className="text-xs tracking-[0.3em] uppercase text-brandSky">
-                    Explorer
-                  </p>
-                  <h1 className="text-3xl font-semibold">Nearby parking slots</h1>
-                  <p className="text-sm text-white/70">
-                    Showing {filters.evOnly ? "EV-ready" : "all"} slots for{" "}
-                    {filters.vehicle.replace("-", " ")} ({filters.duration})
-                  </p>
-                </div>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setViewMode(viewMode === "list" ? "map" : "list")}
-                    className={`px-4 py-3 rounded-2xl border text-sm font-semibold transition-colors ${viewMode === "map"
-                      ? "bg-brandSky text-brandNight border-brandSky"
-                      : "border-white/20 hover:bg-white/10"
-                      }`}
-                  >
-                    {viewMode === "list" ? "Live Map" : "List View"}
-                  </button>
-                </div>
-              </div>
-
               {/* Search Bar */}
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
