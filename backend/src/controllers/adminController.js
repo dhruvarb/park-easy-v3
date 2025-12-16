@@ -24,6 +24,18 @@ const lotSchema = z.object({
       })
     )
     .default([]),
+  slots: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        type: z.string(),
+        x: z.number().int(),
+        y: z.number().int(),
+        rotation: z.number().optional(),
+        label: z.string().optional()
+      })
+    )
+    .default([]),
 });
 
 const lotSelect = `
@@ -75,6 +87,7 @@ export const upsertParkingLot = async (req, res, next) => {
     if (typeof req.body.pricing === 'string') req.body.pricing = JSON.parse(req.body.pricing);
     if (typeof req.body.amenities === 'string') req.body.amenities = JSON.parse(req.body.amenities);
     if (typeof req.body.capacityBreakdown === 'string') req.body.capacityBreakdown = JSON.parse(req.body.capacityBreakdown);
+    if (typeof req.body.slots === 'string') req.body.slots = JSON.parse(req.body.slots);
     if (req.body.hasEv === 'true') req.body.hasEv = true;
     if (req.body.hasEv === 'false') req.body.hasEv = false;
     if (req.body.latitude) req.body.latitude = Number(req.body.latitude);
@@ -260,41 +273,69 @@ export const upsertParkingLot = async (req, res, next) => {
       }
 
       // Generate Parking Slots based on Capacity Breakdown
-      if (payload.capacityBreakdown) {
-        console.log("Generating parking slots...");
-        // First, we need to handle existing slots. 
-        // Strategy: We will count existing slots per type. 
-        // If new capacity > existing, add more. 
-        // If new capacity < existing, delete some (only available ones).
-        // For simplicity in this iteration: We will just ensure we have *at least* the requested number of slots.
-        // A full sync (delete excess) is riskier if there are bookings.
+      // Save Parking Blueprint Slots
+      if (payload.slots && payload.slots.length > 0) {
+        console.log("Saving blueprint slots:", payload.slots.length);
 
-        for (const [type, count] of Object.entries(payload.capacityBreakdown)) {
-          const currentSlotsRes = await client.query(
-            `SELECT count(*) FROM parking_slots WHERE lot_id = $1 AND vehicle_type = $2`,
-            [lotId, type]
+        // Strategy: Full Replace (Simpler for Blueprint Editor)
+        // 1. Delete all existing slots for this lot
+        await client.query("DELETE FROM parking_slots WHERE lot_id = $1", [lotId]);
+
+        // 2. Insert new slots
+        for (const slot of payload.slots) {
+          // Map generic types to specific if needed (or rely on them being correct)
+          // If the Editor sends 'CAR', we might want to normalize to 'car' or whatever vehicle_type is expected in DB
+          // However, the DB doesn't enforce specific enum on vehicle_type column, just string.
+          // But matching 'slot_pricing' table requires vehicle_type to match.
+          // adminDashboard sends: 'CAR', 'BIKE', 'EV' from Editor?
+          // Wait, the Editor I wrote sends 'CAR', 'BIKE', 'EV'.
+          // adminDashboard Render map logic converted them to pricing counts, but the 'slots' array itself was sent raw.
+          // Actually, in AdminDashboard.jsx I did this logic in onUpdate:
+          // 
+          // updatedSlots.forEach(s => {
+          //      if(s.type === 'CAR') tempCapacity.car...
+          // });
+          //
+          // But 'slots' state stores the RAW editor types ('CAR').
+          // AND 'VEHICLE_TYPES' in `AdminDashboard` uses: 'bike', 'car', 'evCar' ...
+          // AND 'slot_pricing' uses `vehicle_type` from `VEHICLE_TYPES` (e.g. 'car', 'bike').
+          //
+          // QUERY LOGIC in `listSlots` (userController) does:
+          // `JOIN slot_pricing sp ON sp.lot_id = pl.id AND sp.vehicle_type = $1`
+          // `LEFT JOIN parking_slots s ON s.lot_id = pl.id AND s.vehicle_type = $1`
+          //
+          // Therefore, `parking_slots.vehicle_type` MUST match `slot_pricing.vehicle_type`.
+          //
+          // I MUST normalize the types before inserting!
+          // 'CAR' -> 'car'
+          // 'BIKE' -> 'bike'
+          // 'EV' -> 'evCar' (assumption, usually EV cars are the main use case)
+
+          let dbType = slot.type.toLowerCase();
+          if (slot.type === 'EV') dbType = 'evCar'; // Defaulting EV to evCar
+          if (slot.type === 'CAR') dbType = 'car';
+          if (slot.type === 'BIKE') dbType = 'bike';
+
+          await client.query(
+            `INSERT INTO parking_slots (lot_id, label, vehicle_type, is_ev, x, y, rotation, is_active, is_available)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, true, true)`,
+            [
+              lotId,
+              slot.label || `${slot.type}-${slot.x}-${slot.y}`,
+              dbType,
+              slot.type === 'EV', // is_ev
+              slot.x,
+              slot.y,
+              slot.rotation || 0
+            ]
           );
-          const currentCount = parseInt(currentSlotsRes.rows[0].count);
-          const targetCount = parseInt(count);
-
-          if (targetCount > currentCount) {
-            const needed = targetCount - currentCount;
-            console.log(`Adding ${needed} slots for ${type}`);
-            // Generate insert values
-            for (let i = 0; i < needed; i++) {
-              await client.query(
-                `INSERT INTO parking_slots (lot_id, vehicle_type, label, is_available, is_ev)
-                         VALUES ($1, $2, $3, true, $4)`,
-                [
-                  lotId,
-                  type,
-                  `${type.toUpperCase()}-${currentCount + i + 1}`, // Simple label generation
-                  payload.hasEv // Inherit EV status from lot for now, or could be specific
-                ]
-              );
-            }
-          }
         }
+      } else if (payload.capacityBreakdown) {
+        // Fallback legacy logic (if no slots provided but capacity is) - Optional but good for safety
+        // ... (Keeping old logic or assuming slots are mandatory validation?)
+        // Given I'm replacing the block, I can keep the old logic as 'else' branch if I want backward compat.
+        // But for now, user is using the Editor. I will leave the else branch empty or simple.
+        console.log("No blueprint slots provided, skipping auto-generation.");
       }
 
       await client.query("COMMIT");

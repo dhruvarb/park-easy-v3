@@ -57,7 +57,11 @@ CREATE TABLE IF NOT EXISTS parking_slots (
     label TEXT NOT NULL,
     is_ev BOOLEAN DEFAULT FALSE,
     vehicle_type TEXT NOT NULL,
-    is_available BOOLEAN DEFAULT TRUE
+    is_available BOOLEAN DEFAULT TRUE,
+    x INTEGER DEFAULT 0,
+    y INTEGER DEFAULT 0,
+    rotation INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE
 );
 
 CREATE TABLE IF NOT EXISTS bookings (

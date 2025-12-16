@@ -5,7 +5,8 @@ import NavBar from "../components/Navbar";
 import api, { adminApi } from "../services/api";
 import NotificationDropdown from "../components/NotificationDropdown";
 import AdminLotDetailsModal from "../components/AdminLotDetailsModal";
-import ParkingSlotGrid from "../components/ParkingSlotGrid";
+import ParkingSlotGrid from "../components/ParkingSlotGrid"; // Keeping for read-only views if needed, or remove? Keeping for now.
+import BlueprintEditor from "../components/BlueprintEditor";
 
 const VEHICLE_TYPES = [
   { id: 'bike', label: 'Bike / Motorcycle', group: 'regular', db: 'bike' },
@@ -130,6 +131,7 @@ export default function AdminDashboard() {
     description: "",
     pricing: {}, // Stores { [vehicleId]: { hourly: "", daily: "", monthly: "" } }
     capacity: {}, // Stores { [vehicleId]: number }
+    slots: [], // Stores editor slots { x, y, type, rotation }
     latitude: "",
     longitude: "",
     vehicleTypes: {
@@ -320,6 +322,7 @@ export default function AdminDashboard() {
       formData.append("hasEv", String(newLot.amenities.evCharging || newLot.vehicleTypes.evBike || newLot.vehicleTypes.evCar || newLot.vehicleTypes.evSuv));
       formData.append("totalCapacity", String(newLot.totalCapacity || totalCapacity)); // User input takes precedence
       formData.append("capacityBreakdown", JSON.stringify(capacityBreakdown));
+      formData.append("slots", JSON.stringify(newLot.slots || [])); // Send full slot layout
       formData.append("amenities", JSON.stringify(amenitiesList));
       formData.append("pricing", JSON.stringify(pricingPayload));
 
@@ -1058,50 +1061,63 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Pricing for Selected Vehicle Types */}
-                  <div className="space-y-4">
-                    <label className="text-sm font-semibold text-gray-300">Pricing for Selected Vehicle Types *</label>
-                    <p className="text-xs text-gray-400 -mt-3">Set pricing for each vehicle type. At least hourly pricing is required.</p>
+                  {/* Pricing & Capacity Input Configuration */}
+                  {(Object.values(newLot.vehicleTypes).some(Boolean)) && (
+                    <div className="space-y-6 pt-4 border-t border-white/10">
+                      <h3 className="text-lg font-bold text-white">Blueprint & Pricing</h3>
+                      <p className="text-sm text-gray-400">Design your parking lot layout below. Capacity is calculated automatically.</p>
 
-                    {VEHICLE_TYPES.filter(type => newLot.vehicleTypes[type.id]).length === 0 && (
-                      <div className="text-sm text-gray-500 italic p-4 bg-white/5 rounded-xl border border-dashed border-white/10 text-center">
-                        Select vehicle types above to set pricing
+                      {/* Blueprint Editor */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-300">Layout Editor</label>
+                        <BlueprintEditor
+                          initialSlots={newLot.slots}
+                          onUpdate={(updatedSlots) => {
+                            // Calculate capacity from slots
+                            const tempCapacity = { bike: 0, car: 0, evCar: 0 };
+
+                            updatedSlots.forEach(s => {
+                              if (s.type === 'CAR') tempCapacity.car = (tempCapacity.car || 0) + 1;
+                              if (s.type === 'BIKE') tempCapacity.bike = (tempCapacity.bike || 0) + 1;
+                              if (s.type === 'EV') tempCapacity.evCar = (tempCapacity.evCar || 0) + 1;
+                            });
+
+                            setNewLot(prev => ({
+                              ...prev,
+                              slots: updatedSlots,
+                              capacity: {
+                                ...prev.capacity,
+                                ...tempCapacity
+                              }
+                            }));
+                          }}
+                        />
                       </div>
-                    )}
 
-                    <div className="space-y-4">
                       {VEHICLE_TYPES.filter(type => newLot.vehicleTypes[type.id]).map(type => (
-                        <div key={type.id} className={`p-4 rounded-xl border ${type.group === 'ev' ? 'border-green-500/20 bg-green-500/5' : 'border-white/10 bg-white/5'}`}>
-                          <div className="flex items-center gap-2 mb-3">
-                            {type.group === 'ev' && <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>}
-                            <h4 className={`text-sm font-medium ${type.group === 'ev' ? 'text-green-400' : 'text-gray-200'}`}>{type.label}</h4>
-                          </div>
+                        <div key={type.id} className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
+                          <h4 className="font-semibold text-white flex items-center gap-2">
+                            {type.group === 'ev' ? <span className="text-brandSky">⚡</span> : <span>🚗</span>}
+                            {type.label}
+                          </h4>
 
-                          <div className="grid grid-cols-4 gap-4">
+                          <div className="grid md:grid-cols-4 gap-4">
                             <div className="space-y-1">
-                              <label className="text-xs text-gray-400">Capacity *</label>
+                              <label className="text-xs text-gray-400">Capacity (Auto)</label>
                               <input
                                 type="number"
-                                min="1"
-                                placeholder="10"
-                                className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                value={newLot.capacity[type.id] || ""}
-                                onChange={(e) => setNewLot(prev => ({
-                                  ...prev,
-                                  capacity: {
-                                    ...prev.capacity,
-                                    [type.id]: e.target.value
-                                  }
-                                }))}
-                                required
+                                readOnly
+                                className="w-full bg-[#0F172A]/50 border border-white/10 rounded-lg px-3 py-2 text-gray-400 cursor-not-allowed"
+                                value={newLot.capacity[type.id] || 0}
                               />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-xs text-gray-400">Per Hour (₹) *</label>
+                              <label className="text-xs text-gray-400">Hourly Price</label>
                               <input
                                 type="number"
-                                min="0"
-                                placeholder="10"
-                                className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                min="1"
+                                placeholder="₹ / hr"
+                                className="w-full bg-[#0F172A] border border-white/10 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                 value={newLot.pricing[type.id]?.hourly || ""}
                                 onChange={(e) => setNewLot(prev => ({
                                   ...prev,
@@ -1114,12 +1130,12 @@ export default function AdminDashboard() {
                               />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-xs text-gray-400">Per Day (₹)</label>
+                              <label className="text-xs text-gray-400">Daily Price</label>
                               <input
                                 type="number"
-                                min="0"
-                                placeholder="50"
-                                className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                min="1"
+                                placeholder="₹ / day"
+                                className="w-full bg-[#0F172A] border border-white/10 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                 value={newLot.pricing[type.id]?.daily || ""}
                                 onChange={(e) => setNewLot(prev => ({
                                   ...prev,
@@ -1131,12 +1147,12 @@ export default function AdminDashboard() {
                               />
                             </div>
                             <div className="space-y-1">
-                              <label className="text-xs text-gray-400">Per Month (₹)</label>
+                              <label className="text-xs text-gray-400">Monthly Price</label>
                               <input
                                 type="number"
-                                min="0"
-                                placeholder="800"
-                                className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                min="1"
+                                placeholder="₹ / month"
+                                className="w-full bg-[#0F172A] border border-white/10 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                 value={newLot.pricing[type.id]?.monthly || ""}
                                 onChange={(e) => setNewLot(prev => ({
                                   ...prev,
@@ -1150,40 +1166,8 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       ))}
-
-                      {/* Slot Grid Preview */}
-                      <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
-                        <h4 className="font-semibold text-white">Slot Layout Preview</h4>
-                        <ParkingSlotGrid
-                          slots={(() => {
-                            const previewSlots = [];
-                            VEHICLE_TYPES.forEach(type => {
-                              if (newLot.vehicleTypes[type.id]) {
-                                const count = Number(newLot.capacity[type.id]) || 0;
-                                if (count > 0) {
-                                  const prefix = type.group === 'ev' ? 'E' : (type.id.toLowerCase().includes('bike')) ? 'B' : 'C';
-                                  for (let i = 1; i <= count; i++) {
-                                    previewSlots.push({
-                                      id: `${prefix}${type.id.charAt(0).toUpperCase()}${i}`,
-                                      type: type.group === 'ev' ? 'EV' : (type.id.toLowerCase().includes('bike') ? 'BIKE' : 'CAR')
-                                    });
-                                  }
-                                }
-                              }
-                            });
-                            return previewSlots;
-                          })()}
-                          bookings={[]}
-                          selectedSlot={null}
-                          onSelectSlot={() => { }}
-                          userVehicleType=""
-                          queryStartTime={new Date().toISOString()}
-                          queryEndTime={new Date().toISOString()}
-                          previewMode={true}
-                        />
-                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Images */}
                   <div className="space-y-2">
