@@ -83,9 +83,17 @@ export const upsertParkingLot = async (req, res, next) => {
 
     const payload = lotSchema.parse(req.body);
 
-    // Handle images with Cloudinary
+    // Handle images and blueprint with Cloudinary
     let imagePaths = [];
-    if (req.files && req.files.length > 0) {
+    let blueprintPath = null;
+
+    // Check if we have files (req.files is now an object due to upload.fields)
+    // If it was array (legacy), handle that too just in case, but upload.fields gives object
+    const files = req.files || {};
+    const imageFiles = files['images'] || [];
+    const blueprintFiles = files['blueprint'] || [];
+
+    if (imageFiles.length > 0 || blueprintFiles.length > 0) {
       // Import Cloudinary and configure
       const { v2: cloudinary } = await import('cloudinary');
 
@@ -95,35 +103,54 @@ export const upsertParkingLot = async (req, res, next) => {
         api_secret: env.cloudinary.apiSecret
       });
 
-      for (const file of req.files) {
-        try {
-          // Wrap upload_stream in a Promise since it uses a callback/stream
-          const result = await new Promise((resolve, reject) => {
-            const uploadStream = cloudinary.uploader.upload_stream(
-              {
-                folder: 'park-easy/parking-lots',
-                resource_type: 'image',
-              },
-              (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
-              }
-            );
-            // End the stream with the file buffer
-            uploadStream.end(file.buffer);
-          });
+      // Helper to upload single file
+      const uploadToCloudinary = async (file, folder) => {
+        return new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder: folder,
+              resource_type: 'image',
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          uploadStream.end(file.buffer);
+        });
+      };
 
+      // Upload Images
+      for (const file of imageFiles) {
+        try {
+          const result = await uploadToCloudinary(file, 'park-easy/parking-lots');
           if (result && result.secure_url) {
             imagePaths.push(result.secure_url);
-            console.log("Cloudinary upload success:", result.secure_url);
+            console.log("Cloudinary image upload success:", result.secure_url);
           }
         } catch (error) {
-          console.error("Cloudinary Upload Error:", error);
-          // Fallback to Base64 in case Cloudinary fails
-          console.warn("Falling back to Base64 for:", file.originalname);
+          console.error("Cloudinary Image Upload Error:", error);
+          // Fallback to Base64
           const base64String = file.buffer.toString('base64');
           const dataUri = `data:${file.mimetype};base64,${base64String}`;
           imagePaths.push(dataUri);
+        }
+      }
+
+      // Upload Blueprint
+      if (blueprintFiles.length > 0) {
+        const file = blueprintFiles[0];
+        try {
+          const result = await uploadToCloudinary(file, 'park-easy/blueprints');
+          if (result && result.secure_url) {
+            blueprintPath = result.secure_url;
+            console.log("Cloudinary blueprint upload success:", result.secure_url);
+          }
+        } catch (error) {
+          console.error("Cloudinary Blueprint Upload Error:", error);
+          // Fallback to Base64
+          const base64String = file.buffer.toString('base64');
+          blueprintPath = `data:${file.mimetype};base64,${base64String}`;
         }
       }
     }
@@ -142,6 +169,7 @@ export const upsertParkingLot = async (req, res, next) => {
         const { rowCount } = await client.query(
           `UPDATE parking_lots
            SET name = $1, address = $2, city = $3, latitude = $4, longitude = $5, has_ev = $6, total_capacity = $7, capacity_breakdown = $8,
+               blueprint = COALESCE($12, blueprint),
                images = CASE WHEN $11::text[] IS NOT NULL AND array_length($11::text[], 1) > 0 THEN array_cat(images, $11::text[]) ELSE images END
            WHERE id = $9 AND admin_id = $10`,
           [
@@ -155,7 +183,8 @@ export const upsertParkingLot = async (req, res, next) => {
             payload.capacityBreakdown,
             payload.lotId,
             req.user.id,
-            imagePaths
+            imagePaths,
+            blueprintPath
           ]
         );
         if (!rowCount) {
@@ -167,8 +196,8 @@ export const upsertParkingLot = async (req, res, next) => {
         console.log("Inserting new lot");
         const { rows } = await client.query(
           `INSERT INTO parking_lots
-            (admin_id, name, address, city, latitude, longitude, has_ev, total_capacity, capacity_breakdown, images)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            (admin_id, name, address, city, latitude, longitude, has_ev, total_capacity, capacity_breakdown, images, blueprint)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
            RETURNING id`,
           [
             req.user.id,
@@ -178,9 +207,10 @@ export const upsertParkingLot = async (req, res, next) => {
             payload.latitude,
             payload.longitude,
             payload.hasEv,
-            payload.totalCapacity,
+            payload.totalCapacity, // Now explicitly from payload
             payload.capacityBreakdown,
-            imagePaths
+            imagePaths,
+            blueprintPath
           ]
         );
         lotId = rows[0].id;

@@ -12,7 +12,7 @@ export default function AdminLotDetailsModal({ lot, onClose }) {
     // Helper to get full image URL
     const getImageUrl = (img) => {
         if (!img) return '';
-        if (img.startsWith('http')) return img;
+        if (img.startsWith('http') || img.startsWith('data:')) return img;
         return `${API_BASE}${img}`;
     };
 

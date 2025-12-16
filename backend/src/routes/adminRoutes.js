@@ -21,7 +21,10 @@ const router = Router();
 router.use(requireAuth(["admin"]));
 
 router.get("/parking-lots", getParkingLots);
-router.post("/parking-lots", upload.array("images", 5), upsertParkingLot);
+router.post("/parking-lots", upload.fields([
+  { name: 'images', maxCount: 5 },
+  { name: 'blueprint', maxCount: 1 }
+]), upsertParkingLot);
 router.get("/analytics/overview", getAnalytics);
 router.get("/bookings", getBookings);
 router.delete("/parking-lots/:id", deleteParkingLot);

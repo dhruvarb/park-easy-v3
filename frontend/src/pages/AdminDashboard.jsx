@@ -205,6 +205,15 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchReviews = async () => {
+    try {
+      const response = await adminApi.getReviews();
+      setReviews(response.reviews);
+    } catch (error) {
+      console.error("Failed to fetch reviews", error);
+    }
+  };
+
 
 
   const handleSupportSubmit = async (e) => {
@@ -308,7 +317,7 @@ export default function AdminDashboard() {
       formData.append("latitude", newLot.latitude);
       formData.append("longitude", newLot.longitude);
       formData.append("hasEv", String(newLot.amenities.evCharging || newLot.vehicleTypes.evBike || newLot.vehicleTypes.evCar || newLot.vehicleTypes.evSuv));
-      formData.append("totalCapacity", String(totalCapacity));
+      formData.append("totalCapacity", String(newLot.totalCapacity || totalCapacity)); // User input takes precedence
       formData.append("capacityBreakdown", JSON.stringify(capacityBreakdown));
       formData.append("amenities", JSON.stringify(amenitiesList));
       formData.append("pricing", JSON.stringify(pricingPayload));
@@ -318,11 +327,17 @@ export default function AdminDashboard() {
         formData.append("images", img.file);
       });
 
+      // Append Blueprint if exists
+      if (newLot.blueprint) {
+        formData.append("blueprint", newLot.blueprint);
+      }
+
       await adminApi.addLot(formData);
 
       setShowAddModal(false);
       alert("Parking lot added successfully!");
       fetchLots();
+      // Reset form
       // Reset form
       setNewLot({
         name: "",
@@ -330,6 +345,8 @@ export default function AdminDashboard() {
         description: "",
         pricing: {},
         capacity: {},
+        totalCapacity: "",
+        blueprint: null,
         latitude: "",
         longitude: "",
         vehicleTypes: { bike: false, car: false, suv: false, bus: false, evBike: false, evCar: false, evSuv: false },
@@ -896,6 +913,35 @@ export default function AdminDashboard() {
                       onChange={(e) => setNewLot({ ...newLot, address: e.target.value })}
                       required
                     />
+                  </div>
+
+                  {/* Total Capacity & Blueprint */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-300">Total Parking Spots *</label>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="e.g., 50"
+                        className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        value={newLot.totalCapacity || ''}
+                        onChange={(e) => setNewLot({ ...newLot, totalCapacity: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-300">Parking Blueprint</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="w-full bg-[#0F172A] border border-white/10 rounded-xl px-4 py-2.5 text-white/50 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition-all"
+                        onChange={(e) => {
+                          if (e.target.files[0]) {
+                            setNewLot({ ...newLot, blueprint: e.target.files[0] });
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
 
                   {/* Coordinates */}
