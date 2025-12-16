@@ -1179,6 +1179,7 @@ export default function AdminDashboard() {
                           userVehicleType=""
                           queryStartTime={new Date().toISOString()}
                           queryEndTime={new Date().toISOString()}
+                          previewMode={true}
                         />
                       </div>
                     </div>
