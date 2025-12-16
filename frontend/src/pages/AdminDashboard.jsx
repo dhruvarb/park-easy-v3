@@ -5,6 +5,7 @@ import NavBar from "../components/Navbar";
 import api, { adminApi } from "../services/api";
 import NotificationDropdown from "../components/NotificationDropdown";
 import AdminLotDetailsModal from "../components/AdminLotDetailsModal";
+import ParkingSlotGrid from "../components/ParkingSlotGrid";
 
 const VEHICLE_TYPES = [
   { id: 'bike', label: 'Bike / Motorcycle', group: 'regular', db: 'bike' },
@@ -1149,6 +1150,37 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       ))}
+
+                      {/* Slot Grid Preview */}
+                      <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
+                        <h4 className="font-semibold text-white">Slot Layout Preview</h4>
+                        <ParkingSlotGrid
+                          slots={(() => {
+                            const previewSlots = [];
+                            VEHICLE_TYPES.forEach(type => {
+                              if (newLot.vehicleTypes[type.id]) {
+                                const count = Number(newLot.capacity[type.id]) || 0;
+                                if (count > 0) {
+                                  const prefix = type.group === 'ev' ? 'E' : (type.id.toLowerCase().includes('bike')) ? 'B' : 'C';
+                                  for (let i = 1; i <= count; i++) {
+                                    previewSlots.push({
+                                      id: `${prefix}${type.id.charAt(0).toUpperCase()}${i}`,
+                                      type: type.group === 'ev' ? 'EV' : (type.id.toLowerCase().includes('bike') ? 'BIKE' : 'CAR')
+                                    });
+                                  }
+                                }
+                              }
+                            });
+                            return previewSlots;
+                          })()}
+                          bookings={[]}
+                          selectedSlot={null}
+                          onSelectSlot={() => { }}
+                          userVehicleType=""
+                          queryStartTime={new Date().toISOString()}
+                          queryEndTime={new Date().toISOString()}
+                        />
+                      </div>
                     </div>
                   </div>
 
