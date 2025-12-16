@@ -21,7 +21,8 @@ const ParkingSlotGrid = ({
     onSelectSlot,
     userVehicleType,
     queryStartTime,
-    queryEndTime
+    queryEndTime,
+    previewMode = false // New prop
 }) => {
 
     // Helper to normalize types for comparison (e.g., 'evSuv' -> 'EV')
@@ -36,6 +37,11 @@ const ParkingSlotGrid = ({
     // 1. Process Status for each slot
     const slotStatusMap = useMemo(() => {
         const status = {};
+        if (previewMode) {
+            slots.forEach(slot => status[slot.id] = 'AVAILABLE');
+            return status;
+        }
+
         const qStart = new Date(queryStartTime).getTime();
         const qEnd = new Date(queryEndTime).getTime();
 
