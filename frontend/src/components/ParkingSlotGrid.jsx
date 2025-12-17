@@ -22,9 +22,13 @@ const ParkingSlotGrid = ({
     // Helper to normalize types
     const normalizeType = (type) => {
         if (!type) return 'CAR';
-        const t = type.toLowerCase();
-        if (t.includes('ev')) return 'EV';
-        if (t.includes('bike')) return 'BIKE';
+        const t = type.toUpperCase(); // Ensure upper case for comparison
+        if (t === 'EV_CAR' || t === 'EV_BIKE' || t === 'TRUCK' || t === 'MINIBUS' || t === 'WALL' || t === 'ENTRY' || t === 'ROAD') return t;
+
+        // Fallback for legacy data
+        const lower = type.toLowerCase();
+        if (lower.includes('ev')) return 'EV_CAR';
+        if (lower.includes('bike')) return 'BIKE';
         return 'CAR';
     };
 
@@ -56,8 +60,12 @@ const ParkingSlotGrid = ({
                 const slotTypeNor = normalizeType(slot.type);
                 const userTypeNor = normalizeType(userVehicleType);
 
-                if (slotTypeNor === 'EV' && userTypeNor !== 'EV') state = 'RESTRICTED';
-                if (slotTypeNor === 'BIKE' && userTypeNor === 'CAR') state = 'RESTRICTED';
+                // Exact match logic or compatible groups?
+                // For simplicity: Types must match exactly, except Car users might see generic spots? 
+                // Let's enforce strict matching unless user has a "Heavy License" etc.
+                if (slotTypeNor !== userTypeNor) state = 'RESTRICTED';
+
+                // Exception: maybe CAR can park in EV_CAR as 'RESTRICTED' (visible but not bookable) - handled by generic != check
             }
             status[slot.id] = state;
         });
@@ -79,7 +87,7 @@ const ParkingSlotGrid = ({
                 <div className="flex items-center gap-1"><div className="w-3 h-3 bg-gray-800 border border-white/20 rounded-sm"></div> <span className="text-gray-300">Available</span></div>
                 <div className="flex items-center gap-1"><div className="w-3 h-3 bg-brandSky border border-brandSky rounded-sm"></div> <span className="text-white">Selected</span></div>
                 <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-900/50 border border-red-500/50 rounded-sm"></div> <span className="text-red-400">Booked</span></div>
-                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-yellow-900/50 border border-yellow-500/50 rounded-sm"></div> <span className="text-yellow-400">EV Only</span></div>
+                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-yellow-900/50 border border-yellow-500/50 rounded-sm"></div> <span className="text-yellow-400">EV</span></div>
             </div>
 
             <div
@@ -144,10 +152,9 @@ const ParkingSlotGrid = ({
                                 bgClass = "bg-red-900/30"; // Subtle red tint
                                 borderClass = "border border-red-400/50 m-[0px]";
                             } else if (status === 'RESTRICTED') {
-                                // Visible but unselectable (e.g. Bike spot when booking Car)
+                                // Visible but unselectable
                                 bgClass = "bg-white/5";
                                 borderClass = "border border-white/30 m-[0px]";
-                                // No content override - show the icon/label normally
                             } else if (isSelected) {
                                 bgClass = "bg-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.5)] z-20";
                                 borderClass = "border-2 border-white m-[0px]";
@@ -161,9 +168,15 @@ const ParkingSlotGrid = ({
                             if (!content || status === 'RESTRICTED') {
                                 content = (
                                     <div className={`flex flex-col items-center justify-center w-full h-full transition-transform ${slot.rotation ? `rotate-${slot.rotation}` : ''}`}>
-                                        {/* Simplified clean icons for blueprint look */}
-                                        {type === 'EV' && <span className={`text-[10px] ${isSelected ? 'text-white' : 'text-yellow-400'}`}>⚡</span>}
-                                        {type === 'BIKE' && <span className={`text-[10px] ${isSelected ? 'text-white' : 'text-cyan-200'}`}>M</span>}
+
+                                        {/* TYPE SPECIFIC ICONS */}
+                                        {type === 'EV_CAR' && <span className={`text-[10px] ${isSelected ? 'text-white' : 'text-yellow-400'}`}>🚙⚡</span>}
+                                        {type === 'EV_BIKE' && <span className={`text-[10px] ${isSelected ? 'text-white' : 'text-yellow-200'}`}>🛵⚡</span>}
+                                        {type === 'BIKE' && <span className={`text-[10px] ${isSelected ? 'text-white' : 'text-cyan-200'}`}>🏍️</span>}
+                                        {type === 'TRUCK' && <span className={`text-[10px] ${isSelected ? 'text-white' : 'text-orange-400'}`}>🚛</span>}
+                                        {type === 'MINIBUS' && <span className={`text-[10px] ${isSelected ? 'text-white' : 'text-purple-400'}`}>🚐</span>}
+
+                                        {/* Standard Car */}
                                         {type === 'CAR' && !isSelected && <span className="text-[8px] text-white/50">C</span>}
                                         {type === 'CAR' && isSelected && <span className="text-[10px] text-white font-bold">CAR</span>}
 

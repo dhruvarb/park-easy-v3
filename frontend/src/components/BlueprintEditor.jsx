@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// Icons
 const ICONS = {
     CAR: '🚗',
     BIKE: '🏍️',
-    EV: '⚡',
+    EV: '⚡', // Legacy support
+    EV_CAR: '🚙⚡',
+    EV_BIKE: '🛵⚡',
+    TRUCK: '🚛',
+    MINIBUS: '🚐',
     WALL: '🧱',
     ENTRY: '🚪',
     ROAD: '🛣️'
@@ -14,7 +17,10 @@ const TOOLS = [
     { id: 'select', label: 'Select/Rotate', icon: '👆' },
     { id: 'car', label: 'Car Slot', icon: ICONS.CAR, type: 'CAR' },
     { id: 'bike', label: 'Bike Slot', icon: ICONS.BIKE, type: 'BIKE' },
-    { id: 'ev', label: 'EV Slot', icon: ICONS.EV, type: 'EV' },
+    { id: 'ev_car', label: 'EV Car', icon: ICONS.EV_CAR, type: 'EV_CAR' },
+    { id: 'ev_bike', label: 'EV Bike', icon: ICONS.EV_BIKE, type: 'EV_BIKE' },
+    { id: 'truck', label: 'Truck', icon: ICONS.TRUCK, type: 'TRUCK' },
+    { id: 'minibus', label: 'Mini Bus', icon: ICONS.MINIBUS, type: 'MINIBUS' },
     { id: 'wall', label: 'Wall', icon: ICONS.WALL, type: 'WALL' },
     { id: 'road', label: 'Road/Path', icon: ICONS.ROAD, type: 'ROAD' },
     { id: 'erase', label: 'Erase', icon: '🧹' }
@@ -155,7 +161,10 @@ const BlueprintEditor = ({ initialSlots = [], onUpdate }) => {
                     <div className="space-y-1 text-xs text-gray-400">
                         <div className="flex justify-between"><span>Cars:</span> <span className="text-white">{stats.CAR || 0}</span></div>
                         <div className="flex justify-between"><span>Bikes:</span> <span className="text-white">{stats.BIKE || 0}</span></div>
-                        <div className="flex justify-between"><span>EVs:</span> <span className="text-white">{stats.EV || 0}</span></div>
+                        <div className="flex justify-between"><span>EV Cars:</span> <span className="text-white">{stats.EV_CAR || 0}</span></div>
+                        <div className="flex justify-between"><span>EV Bikes:</span> <span className="text-white">{stats.EV_BIKE || 0}</span></div>
+                        <div className="flex justify-between"><span>Trucks:</span> <span className="text-white">{stats.TRUCK || 0}</span></div>
+                        <div className="flex justify-between"><span>Mini Bus:</span> <span className="text-white">{stats.MINIBUS || 0}</span></div>
                     </div>
                 </div>
             </div>
@@ -180,7 +189,10 @@ const BlueprintEditor = ({ initialSlots = [], onUpdate }) => {
             <div className="md:hidden grid grid-cols-3 gap-2 text-xs text-gray-400 p-2 border-t border-white/10">
                 <div className="text-center">Cars: <span className="text-white font-bold">{stats.CAR || 0}</span></div>
                 <div className="text-center">Bikes: <span className="text-white font-bold">{stats.BIKE || 0}</span></div>
-                <div className="text-center">EVs: <span className="text-white font-bold">{stats.EV || 0}</span></div>
+                <div className="text-center">EV C: <span className="text-white font-bold">{stats.EV_CAR || 0}</span></div>
+                <div className="text-center">EV B: <span className="text-white font-bold">{stats.EV_BIKE || 0}</span></div>
+                <div className="text-center">Truck: <span className="text-white font-bold">{stats.TRUCK || 0}</span></div>
+                <div className="text-center">Bus: <span className="text-white font-bold">{stats.MINIBUS || 0}</span></div>
             </div>
         </div>
     );
