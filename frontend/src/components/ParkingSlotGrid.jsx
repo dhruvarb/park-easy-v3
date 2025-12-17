@@ -83,17 +83,20 @@ const ParkingSlotGrid = ({
             </div>
 
             <div
-                className="relative bg-[#334155] p-6 rounded-xl shadow-2xl overflow-auto border-4 border-[#1e293b]"
+                className="relative bg-[#1e3a8a] p-6 rounded-xl shadow-2xl overflow-auto border-4 border-white/10"
                 style={{
-                    // Simulating an asphalt container
-                    width: 'fit-content'
+                    // Blueprint Blue background
+                    width: 'fit-content',
+                    backgroundImage: 'radial-gradient(circle, #2563eb 1px, transparent 1px)',
+                    backgroundSize: '20px 20px',
+                    backgroundColor: '#172554' // blue-950
                 }}
             >
                 <div
                     className="grid relative"
                     style={{
                         display: 'grid',
-                        gap: '0px', // Seamless grid for connected roads
+                        gap: '0px',
                         gridTemplateColumns: `repeat(${gridSize}, 40px)`,
                         gridTemplateRows: `repeat(${gridSize}, 40px)`,
                     }}
@@ -112,53 +115,54 @@ const ParkingSlotGrid = ({
                         let borderClass = "";
                         let content = null;
 
-                        // Default Styles (Map Aesthetics)
+                        // Default Styles (Blueprint Aesthetics)
                         if (type === 'WALL') {
-                            bgClass = "bg-slate-900 z-10"; // Dark walls
-                            // Add a subtle 3D effect border
-                            borderClass = "border-t border-l border-white/10 border-b-4 border-r-4 border-black/50";
+                            bgClass = "bg-slate-900/50 z-10";
+                            borderClass = "border border-white/20";
                         } else if (type === 'ROAD') {
-                            bgClass = "bg-[#334155]"; // Asphalt
-                            // Optional: Dotted line logic could be complex without context, keep simple
+                            bgClass = "bg-transparent";
+                            // Render subtle guide lines for roads if needed, or keeping clear for "driving aisle"
                             content = <div className="hidden"></div>;
                         } else if (type === 'ENTRY') {
-                            bgClass = "bg-[#334155]";
+                            bgClass = "bg-white/5";
                             content = (
                                 <div className="flex flex-col items-center justify-center h-full w-full">
                                     <span className="text-[9px] font-bold text-white/50 tracking-widest rotate-90 sm:rotate-0">ENTRY</span>
-                                    <div className="w-4 h-4 border-b-2 border-l-2 border-white/50 transform -rotate-45 mt-[-2px]"></div>
+                                    <div className="w-4 h-4 border-b border-l border-white/50 transform -rotate-45 mt-[-2px]"></div>
                                 </div>
                             );
                         } else {
                             // Parking Spots
-                            bgClass = "bg-[#334155]"; // Asphalt base
-                            borderClass = "border-2 border-dashed border-white/20 rounded-md m-[2px]"; // Parking lines
+                            bgClass = "bg-transparent";
+                            borderClass = "border border-white/50 m-[0px]"; // Thin white lines
 
                             if (status === 'BOOKED') {
-                                bgClass = "bg-red-900/20";
-                                borderClass = "border-2 border-red-500/30 m-[2px] rounded-md";
+                                bgClass = "bg-red-900/40";
+                                borderClass = "border border-red-400/50 m-[0px]";
                             } else if (status === 'RESTRICTED') {
-                                bgClass = "bg-gray-800/50";
+                                bgClass = "bg-black/20";
                                 content = <span className="opacity-20 text-xl grayscale">🚫</span>;
                             } else if (isSelected) {
-                                bgClass = "bg-brandSky shadow-[0_0_15px_rgba(14,165,233,0.6)] z-20 transform scale-105";
-                                borderClass = "border-2 border-white rounded-md m-[1px]";
+                                bgClass = "bg-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.5)] z-20";
+                                borderClass = "border-2 border-white m-[0px]";
                             } else {
                                 // Available
-                                bgClass = "bg-[#334155] hover:bg-white/5 transition-colors cursor-pointer";
-                                borderClass = "border-2 border-white/40 m-[2px] rounded-md"; // White paint lines
+                                bgClass = "hover:bg-white/10 transition-colors cursor-pointer";
+                                borderClass = "border border-white/60 m-[0px]";
                             }
 
                             // Icons
                             if (!content) {
                                 content = (
                                     <div className={`flex flex-col items-center justify-center w-full h-full transition-transform ${slot.rotation ? `rotate-${slot.rotation}` : ''}`}>
-                                        {type === 'EV' && <span className={`text-base ${isSelected ? 'text-white' : 'text-yellow-400'}`}>⚡</span>}
-                                        {type === 'BIKE' && <span className={`text-base ${isSelected ? 'text-white' : 'text-white/60'}`}>🏍️</span>}
-                                        {type === 'CAR' && !isSelected && <span className="text-base text-white/40">🚗</span>}
-                                        {type === 'CAR' && isSelected && <span className="text-base text-white">🚗</span>}
+                                        {/* Simplified clean icons for blueprint look */}
+                                        {type === 'EV' && <span className={`text-xs ${isSelected ? 'text-white' : 'text-yellow-400'}`}>⚡</span>}
+                                        {type === 'BIKE' && <span className={`text-xs ${isSelected ? 'text-white' : 'text-blue-200'}`}>M</span>}
+                                        {type === 'CAR' && !isSelected && <span className="text-[10px] text-white/40">C</span>}
+                                        {type === 'CAR' && isSelected && <span className="text-xs text-white">Car</span>}
+
                                         {/* Label */}
-                                        <span className={`text-[8px] font-bold mt-[-2px] ${isSelected ? 'text-white' : 'text-white/30'}`}>{slot.label}</span>
+                                        <span className={`text-[10px] font-mono mt-0.5 ${isSelected ? 'text-white font-bold' : 'text-white/70'}`}>{slot.label}</span>
                                     </div>
                                 );
                             }
@@ -182,8 +186,9 @@ const ParkingSlotGrid = ({
                                 {/* Booked Overlay */}
                                 {status === 'BOOKED' && (
                                     <div className="absolute inset-0 flex items-center justify-center">
-                                        <div className="w-8 h-8 rounded-full border-2 border-red-500/20 flex items-center justify-center">
-                                            <div className="w-1 h-full bg-red-500/20 rotate-45 absolute"></div>
+                                        <div className="w-full h-full flex items-center justify-center">
+                                            <div className="w-[120%] h-[1px] bg-red-400/50 rotate-45 absolute"></div>
+                                            <div className="w-[120%] h-[1px] bg-red-400/50 -rotate-45 absolute"></div>
                                         </div>
                                     </div>
                                 )}
