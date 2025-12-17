@@ -216,6 +216,26 @@ export default function UserHeader() {
                                     <p className="text-sm font-semibold text-white">My Account</p>
                                 </div>
                                 <Link
+                                    to="/bookings"
+                                    className="md:hidden flex items-center gap-2 px-4 py-2 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-colors"
+                                    onClick={() => setShowProfileMenu(false)}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.75V16.5L12 14.25 7.5 16.5V3.75m9 0H18A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6A2.25 2.25 0 016 3.75h1.5m9 0h-9" />
+                                    </svg>
+                                    My Bookings
+                                </Link>
+                                <Link
+                                    to="/about"
+                                    className="md:hidden flex items-center gap-2 px-4 py-2 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-colors"
+                                    onClick={() => setShowProfileMenu(false)}
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                                    </svg>
+                                    About Us
+                                </Link>
+                                <Link
                                     to="/profile"
                                     className="block px-4 py-2 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
                                     onClick={() => setShowProfileMenu(false)}

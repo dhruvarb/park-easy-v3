@@ -7,6 +7,7 @@ type AuthType = {
     isLoading: boolean;
     signIn: (token: string, user: any) => Promise<void>;
     signOut: () => Promise<void>;
+    refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthType>({
@@ -14,6 +15,7 @@ const AuthContext = createContext<AuthType>({
     isLoading: false,
     signIn: async () => { },
     signOut: async () => { },
+    refreshUser: async () => { },
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -23,26 +25,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const loadUser = async () => {
-            try {
-                const token = await SecureStore.getItemAsync('pe_token');
-                if (token) {
-                    try {
-                        const userData = await authApi.me();
-                        setUser(userData.user);
-                    } catch (err) {
-                        console.log("Token invalid or network error", err);
-                    }
-                }
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         loadUser();
     }, []);
+
+    const loadUser = async () => {
+        try {
+            const token = await SecureStore.getItemAsync('pe_token');
+            if (token) {
+                try {
+                    const userData = await authApi.me();
+                    setUser(userData.user);
+                } catch (err) {
+                    console.log("Token invalid or network error", err);
+                    await SecureStore.deleteItemAsync('pe_token');
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const signIn = async (token: string, newUser: any) => {
         await SecureStore.setItemAsync('pe_token', token);
@@ -54,8 +57,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
     };
 
+    const refreshUser = async () => {
+        try {
+            const userData = await authApi.me();
+            setUser(userData.user);
+        } catch (error) {
+            console.error("Failed to refresh user", error);
+        }
+    }
+
     return (
-        <AuthContext.Provider value={{ user, isLoading, signIn, signOut }}>
+        <AuthContext.Provider value={{ user, isLoading, signIn, signOut, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

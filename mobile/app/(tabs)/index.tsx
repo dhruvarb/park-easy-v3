@@ -1,182 +1,98 @@
-import { Image, StyleSheet, FlatList, TouchableOpacity, View, Text, ActivityIndicator } from 'react-native';
-import { useEffect, useState } from 'react';
-import { userApi } from '@/src/services/api';
-import { useAuth } from '@/src/context/AuthContext';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { Stack, useRouter } from 'expo-router';
+import { Image } from 'expo-image';
+import { Platform, StyleSheet } from 'react-native';
+
+import { HelloWave } from '@/components/hello-wave';
+import ParallaxScrollView from '@/components/parallax-scroll-view';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { Link } from 'expo-router';
 
 export default function HomeScreen() {
-  const { user, signOut } = useAuth();
-  const [lots, setLots] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
-
-  useEffect(() => {
-    loadLots();
-  }, []);
-
-  const loadLots = async () => {
-    try {
-      const data = await userApi.getLots();
-      // data should be { slots: [...] }
-      const lotsData = data.slots || (Array.isArray(data) ? data : []);
-      setLots(lotsData);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const renderItem = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.card} onPress={() => {
-      // Navigate to details if needed
-      // router.push(`/details/${item.id}`);
-    }}>
-      <Image
-        source={{ uri: (item.images && item.images.length > 0 && typeof item.images[0] === 'string') ? item.images[0] : 'https://placehold.co/600x400/png?text=Parking' }}
-        style={styles.cardImage}
-        resizeMode="cover"
-      />
-      <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <ThemedText type="subtitle" style={styles.lotName}>{item.name}</ThemedText>
-          <View style={[styles.badge, item.hasEv ? styles.badgeEv : styles.badgeNormal]}>
-            <Text style={styles.badgeText}>{item.hasEv ? 'EV' : 'Parking'}</Text>
-          </View>
-        </View>
-        <Text style={styles.address}>{item.address}</Text>
-        <View style={styles.infoRow}>
-          <Text style={styles.price}>₹{item.pricing?.hourly || '--'}/hr</Text>
-          {parseInt(item.availableSlots) > 0 ?
-            <Text style={styles.available}>{item.availableSlots} spots left</Text>
-            : <Text style={styles.full}>Full</Text>
-          }
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-
   return (
-    <ThemedView style={styles.container}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.header}>
-        <View>
-          <ThemedText type="title">Welcome!</ThemedText>
-          <ThemedText style={styles.userName}>{user?.full_name}</ThemedText>
-        </View>
-        <TouchableOpacity onPress={signOut} style={styles.logoutButton}>
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 20 }} />
-      ) : (
-        <FlatList
-          data={lots}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.list}
-          ListEmptyComponent={<ThemedText style={{ textAlign: 'center', marginTop: 20 }}>No parking lots found near you.</ThemedText>}
+    <ParallaxScrollView
+      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+      headerImage={
+        <Image
+          source={require('@/assets/images/partial-react-logo.png')}
+          style={styles.reactLogo}
         />
-      )}
-    </ThemedView>
+      }>
+      <ThemedView style={styles.titleContainer}>
+        <ThemedText type="title">Welcome!</ThemedText>
+        <HelloWave />
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
+        <ThemedText>
+          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
+          Press{' '}
+          <ThemedText type="defaultSemiBold">
+            {Platform.select({
+              ios: 'cmd + d',
+              android: 'cmd + m',
+              web: 'F12',
+            })}
+          </ThemedText>{' '}
+          to open developer tools.
+        </ThemedText>
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
+        <Link href="/modal">
+          <Link.Trigger>
+            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
+          </Link.Trigger>
+          <Link.Preview />
+          <Link.Menu>
+            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
+            <Link.MenuAction
+              title="Share"
+              icon="square.and.arrow.up"
+              onPress={() => alert('Share pressed')}
+            />
+            <Link.Menu title="More" icon="ellipsis">
+              <Link.MenuAction
+                title="Delete"
+                icon="trash"
+                destructive
+                onPress={() => alert('Delete pressed')}
+              />
+            </Link.Menu>
+          </Link.Menu>
+        </Link>
+
+        <ThemedText>
+          {`Tap the Explore tab to learn more about what's included in this starter app.`}
+        </ThemedText>
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
+        <ThemedText>
+          {`When you're ready, run `}
+          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
+          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
+          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
+          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
+        </ThemedText>
+      </ThemedView>
+    </ParallaxScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 50,
-  },
-  header: {
+  titleContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    gap: 8,
   },
-  userName: {
-    fontSize: 16,
-    opacity: 0.8,
+  stepContainer: {
+    gap: 8,
+    marginBottom: 8,
   },
-  logoutButton: {
-    padding: 8,
-    backgroundColor: '#334155',
-    borderRadius: 8,
-  },
-  logoutText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  list: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  card: {
-    backgroundColor: '#1e293b',
-    borderRadius: 16,
-    marginBottom: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  cardImage: {
-    width: '100%',
-    height: 180,
-  },
-  cardContent: {
-    padding: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  lotName: {
-    flex: 1,
-    marginRight: 8,
-  },
-  address: {
-    color: '#94a3b8',
-    marginBottom: 12,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  price: {
-    color: '#3b82f6',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  available: {
-    color: '#22c55e',
-    fontWeight: '600',
-  },
-  full: {
-    color: '#ef4444',
-    fontWeight: '600',
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  badgeEv: {
-    backgroundColor: 'rgba(34, 197, 94, 0.2)',
-  },
-  badgeNormal: {
-    backgroundColor: 'rgba(148, 163, 184, 0.2)',
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: 'bold',
+  reactLogo: {
+    height: 178,
+    width: 290,
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
   },
 });

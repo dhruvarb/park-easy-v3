@@ -35,10 +35,33 @@ export const authApi = {
     signup: (payload: any) => api.post('/auth/signup', payload) as Promise<any>,
     login: (payload: any) => api.post('/auth/login', payload) as Promise<any>,
     me: () => api.get('/auth/me') as Promise<any>,
+    updateProfile: (data: any) => api.patch('/auth/me', data) as Promise<any>,
 };
 
 export const userApi = {
-    getLots: () => api.get('/user/slots') as Promise<any>,
+    getLots: (config?: any) => api.get('/user/slots', config) as Promise<any>,
+    getLot: (id: string) => api.get(`/user/slots/${id}`) as Promise<any>,
+    getBookings: () => api.get('/user/bookings') as Promise<any>,
+    createBooking: (data: any) => api.post('/user/bookings', data) as Promise<any>,
+    cancelBooking: (id: string) => api.post(`/user/bookings/${id}/cancel`) as Promise<any>,
+    checkoutBooking: (id: string) => api.post(`/user/bookings/${id}/checkout`) as Promise<any>,
+    requestRefund: (data: any) => api.post('/user/refunds', data) as Promise<any>,
+    getFavorites: () => api.get('/user/favorites') as Promise<any>,
+    addFavorite: (lotId: string) => api.post('/user/favorites', { lotId }) as Promise<any>,
+    removeFavorite: (lotId: string) => api.delete(`/user/favorites/${lotId}`) as Promise<any>,
+    getWalletBalance: () => api.get('/user/wallet/balance') as Promise<any>,
+    getReviews: (lotId: string) => api.get(`/user/slots/${lotId}/reviews`) as Promise<any>,
+    addReview: (data: any) => api.post('/user/reviews', data) as Promise<any>,
+};
+
+export const adminApi = {
+    getLots: () => api.get('/admin/lots') as Promise<any>,
+    addLot: (data: any) => api.post('/admin/lots', data) as Promise<any>,
+    deleteLot: (id: string) => api.delete(`/admin/lots/${id}`) as Promise<any>,
+    getBookings: () => api.get('/admin/bookings') as Promise<any>,
+    getEarnings: () => api.get('/admin/earnings') as Promise<any>,
+    getReviews: () => api.get('/admin/reviews') as Promise<any>,
+    submitSupport: (data: any) => api.post('/admin/support', data) as Promise<any>,
 };
 
 export default api;

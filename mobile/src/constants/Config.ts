@@ -1,1 +1,2 @@
-export const API_BASE_URL = 'http://localhost:5000'; // Change to your Vercel URL, e.g., https://your-project.vercel.app
+// Use Expo's public env var support
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000'; 
