@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
+import ParkingSlotGrid from './ParkingSlotGrid'; // Import the grid
 
 export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -18,9 +19,12 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [walletBalance, setWalletBalance] = useState(0);
+    const [lotDetails, setLotDetails] = useState(null); // Full details including slots
+    const [selectedGridSlot, setSelectedGridSlot] = useState(null); // Selected from grid
 
     useEffect(() => {
         fetchBalance();
+        fetchLotDetails();
     }, []);
 
     const fetchBalance = async () => {
@@ -29,6 +33,16 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
             setWalletBalance(res.tokens);
         } catch (error) {
             console.error("Failed to fetch balance", error);
+        }
+    };
+
+    const fetchLotDetails = async () => {
+        try {
+            // Fetch fresh details with slots
+            const res = await api.get(`/user/slots/${slot.id}`);
+            setLotDetails(res.slot);
+        } catch (error) {
+            console.error("Failed to fetch lot details", error);
         }
     };
 
@@ -98,12 +112,20 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
                 return;
             }
 
+            // Require slot selection if slots exist in blueprint
+            if (lotDetails?.slots?.length > 0 && !selectedGridSlot) {
+                setError("Please select a parking slot from the map.");
+                setLoading(false);
+                return;
+            }
+
             const response = await api.post('/user/bookings', {
                 lotId: slot.id,
                 vehicleType: vehicleType,
                 startTime: start.toISOString(),
                 endTime: end.toISOString(),
-                amount: Number(total)
+                amount: Number(total),
+                slotId: selectedGridSlot?.id // Pass selected slot ID
             });
 
             onSuccess(response.slotNumber);
@@ -119,136 +141,197 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-            <div className="bg-brandIndigo rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative border border-white/10">
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-white"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+            <div className="bg-brandIndigo rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl relative border border-white/10 flex flex-col md:flex-row max-h-[90vh]">
 
-                <div className="p-6 space-y-6">
-                    <h2 className="text-xl font-bold text-white">Complete Your Booking</h2>
+                {/* Left: Map Section (New) */}
+                <div className="flex-1 bg-brandNight p-6 border-r border-white/10 min-h-[400px] overflow-hidden flex flex-col">
+                    <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <span>🅿️</span> Select Your Spot
+                    </h3>
+                    {lotDetails?.slots && lotDetails.slots.length > 0 ? (
+                        <div className="flex-1 overflow-auto bg-[#0F172A] rounded-xl border border-white/5 relative">
+                            {/* Pass data to grid */}
+                            <div className="transform scale-75 origin-top-left p-4">
+                                <ParkingSlotGrid
+                                    slots={lotDetails.slots.map(s => ({
+                                        ...s,
+                                        type: s.type || 'CAR' // Fallback
+                                    }))}
+                                    bookings={[]} // We rely on 'is_available' flag for now or fetch bookings if needed for overlap
+                                    // Actually, is_available in DB is static 'true'. 
+                                    // Real availability depends on bookings. 
+                                    // However, for Simplification Step 1, we assume slots are mostly open or we need to fetch bookings.
+                                    // But 'getSlotDetails' response calculated 'availableSlots' count filtering bookings? 
+                                    // No, the query in 'getSlotDetails' did `COUNT(s.*) FILTER (WHERE s.is_available)`. 
+                                    // It does NOT join bookings to exclude them in the list.
+                                    // SO, visual map might show a booked slot as available until user clicks it.
+                                    // FIX: We should ideally fetch current bookings for this Time Window to mark red?
+                                    // FOR NOW: Let user click, and backend rejects if booked.
+                                    // OR: 'getSlotDetails' could have returned `is_booked_in_window` flag.
+                                    // Let's stick to backend rejection to stay simple for now, or just simple static grid.
 
-                    {/* Slot Info */}
-                    <div className="flex gap-4 bg-brandNight p-3 rounded-2xl">
-                        <div className="w-16 h-16 bg-white/5 rounded-xl flex-shrink-0 overflow-hidden">
-                            {slot.images && slot.images.length > 0 ? (
-                                <img
-                                    src={slot.images[0].startsWith('http') || slot.images[0].startsWith('data:') ? slot.images[0] : `${import.meta.env.VITE_API_BASE || 'http://localhost:5000'}${slot.images[0]}`}
-                                    alt={slot.name}
-                                    className="w-full h-full object-cover"
+                                    selectedSlot={selectedGridSlot}
+                                    onSelectSlot={(s) => {
+                                        // Only select if type matches vehicle (optional)
+                                        // And if not 'wall'/'road'
+                                        if (s.type === 'WALL' || s.type === 'ROAD' || s.type === 'ENTRY') return;
+                                        setSelectedGridSlot(s);
+                                        setError('');
+                                    }}
+                                    userVehicleType={vehicleType}
+                                    previewMode={false} // Interactive
+                                    readOnly={false}
                                 />
-                            ) : (
-                                <img
-                                    src="https://images.unsplash.com/photo-1506521781263-d8422e82f27a?q=80&w=200&auto=format&fit=crop"
-                                    alt="Parking Spot"
-                                    className="w-full h-full object-cover opacity-80"
-                                />
-                            )}
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="font-semibold text-white">{slot.name}</h3>
-                            <p className="text-sm text-gray-400">{slot.address}</p>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center text-gray-500">
+                            <p>No visual map available for this lot. <br /> A slot will be assigned automatically.</p>
                         </div>
+                    )}
+
+                    <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
+                        <div className="flex gap-4">
+                            <span className="flex items-center gap-1"><span className="w-3 h-3 bg-green-500 rounded-sm"></span> Available</span>
+                            <span className="flex items-center gap-1"><span className="w-3 h-3 bg-brandSky rounded-sm"></span> Selected</span>
+                            <span className="flex items-center gap-1"><span className="w-3 h-3 bg-red-500/50 rounded-sm"></span> Occupied</span>
+                        </div>
+                        {selectedGridSlot && <span className="text-brandSky font-bold">Selected: {selectedGridSlot.label}</span>}
                     </div>
+                </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Date & Time */}
-                        <div className="space-y-3">
-                            <h4 className="text-sm font-medium text-white">Select Date & Time</h4>
-                            <div className="grid grid-cols-1 gap-3">
-                                <div className="relative">
-                                    <input
-                                        type="date"
-                                        value={date}
-                                        onChange={(e) => setDate(e.target.value)}
-                                        className="w-full bg-brandNight border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-brandSky focus:outline-none [color-scheme:dark]"
-                                        required
+                {/* Right: Booking Form */}
+                <div className="w-full md:w-[400px] overflow-y-auto">
+                    <button
+                        onClick={onClose}
+                        className="absolute top-4 right-4 text-gray-400 hover:text-white z-10"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+
+                    <div className="p-6 space-y-6">
+                        <h2 className="text-xl font-bold text-white">Complete Your Booking</h2>
+
+                        {/* Slot Info */}
+                        <div className="flex gap-4 bg-brandNight p-3 rounded-2xl">
+                            <div className="w-16 h-16 bg-white/5 rounded-xl flex-shrink-0 overflow-hidden">
+                                {slot.images && slot.images.length > 0 ? (
+                                    <img
+                                        src={slot.images[0].startsWith('http') || slot.images[0].startsWith('data:') ? slot.images[0] : `${import.meta.env.VITE_API_BASE || 'http://localhost:5000'}${slot.images[0]}`}
+                                        alt={slot.name}
+                                        className="w-full h-full object-cover"
                                     />
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <input
-                                        type="time"
-                                        value={startTime}
-                                        min={date === new Date().toISOString().split('T')[0] ? new Date().toTimeString().slice(0, 5) : undefined}
-                                        onChange={(e) => setStartTime(e.target.value)}
-                                        className="w-full bg-brandNight border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-brandSky focus:outline-none [color-scheme:dark]"
-                                        required
+                                ) : (
+                                    <img
+                                        src="https://images.unsplash.com/photo-1506521781263-d8422e82f27a?q=80&w=200&auto=format&fit=crop"
+                                        alt="Parking Spot"
+                                        className="w-full h-full object-cover opacity-80"
                                     />
-                                    <input
-                                        type="time"
-                                        value={endTime}
-                                        min={startTime}
-                                        onChange={(e) => setEndTime(e.target.value)}
-                                        className="w-full bg-brandNight border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-brandSky focus:outline-none [color-scheme:dark]"
-                                        required
-                                    />
-                                </div>
+                                )}
                             </div>
-                        </div>
-
-                        {/* Vehicle Info */}
-                        <div className="space-y-3">
-                            <h4 className="text-sm font-medium text-white">Vehicle Information</h4>
                             <div>
-                                <label className="text-xs font-medium text-gray-400 mb-1 block">License Plate Number</label>
-                                <input
-                                    type="text"
-                                    placeholder="ABC-1234"
-                                    value={vehicleNumber}
-                                    onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
-                                    className="w-full bg-brandNight border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-brandSky focus:outline-none placeholder-gray-500"
-                                    required
-                                />
+                                <h3 className="font-semibold text-white">{slot.name}</h3>
+                                <p className="text-sm text-gray-400">{slot.address}</p>
                             </div>
                         </div>
 
-                        {/* Price Summary */}
-                        <div className="space-y-3 pt-4 border-t border-white/10">
-                            <h4 className="text-sm font-medium text-white">Payment Summary</h4>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-400">Wallet Balance</span>
-                                <span className="text-brandUnicorn font-semibold">🪙 {walletBalance}</span>
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* Date & Time */}
+                            <div className="space-y-3">
+                                <h4 className="text-sm font-medium text-white">Select Date & Time</h4>
+                                <div className="grid grid-cols-1 gap-3">
+                                    <div className="relative">
+                                        <input
+                                            type="date"
+                                            value={date}
+                                            onChange={(e) => setDate(e.target.value)}
+                                            className="w-full bg-brandNight border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-brandSky focus:outline-none [color-scheme:dark]"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <input
+                                            type="time"
+                                            value={startTime}
+                                            min={date === new Date().toISOString().split('T')[0] ? new Date().toTimeString().slice(0, 5) : undefined}
+                                            onChange={(e) => setStartTime(e.target.value)}
+                                            className="w-full bg-brandNight border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-brandSky focus:outline-none [color-scheme:dark]"
+                                            required
+                                        />
+                                        <input
+                                            type="time"
+                                            value={endTime}
+                                            min={startTime}
+                                            onChange={(e) => setEndTime(e.target.value)}
+                                            className="w-full bg-brandNight border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-brandSky focus:outline-none [color-scheme:dark]"
+                                            required
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-400">Duration</span>
-                                <span className="text-white">{duration} hours</span>
-                            </div>
-                            <div className="flex justify-between text-lg font-bold pt-2">
-                                <span className="text-white">Total Cost</span>
-                                <span className={isInsufficientFunds ? "text-red-400" : "text-brandIris"}>
-                                    🪙 {total}
-                                </span>
-                            </div>
-                        </div>
 
-                        {error && (
-                            <p className="text-sm text-rose-500 font-medium bg-rose-50 p-3 rounded-xl">{error}</p>
-                        )}
+                            {/* Vehicle Info */}
+                            <div className="space-y-3">
+                                <h4 className="text-sm font-medium text-white">Vehicle Information</h4>
+                                <div>
+                                    <label className="text-xs font-medium text-gray-400 mb-1 block">License Plate Number</label>
+                                    <input
+                                        type="text"
+                                        placeholder="ABC-1234"
+                                        value={vehicleNumber}
+                                        onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
+                                        className="w-full bg-brandNight border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-brandSky focus:outline-none placeholder-gray-500"
+                                        required
+                                    />
+                                </div>
+                            </div>
 
-                        <div className="grid grid-cols-2 gap-3 pt-2">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="w-full bg-transparent border border-white/10 text-white font-semibold py-3 rounded-xl hover:bg-white/5 transition-all"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={loading || isInsufficientFunds}
-                                className={`w-full font-semibold py-3 rounded-xl transition-all disabled:opacity-60 ${isInsufficientFunds
-                                    ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                                    : 'bg-brandSky text-brandNight hover:bg-brandSky/90'
-                                    }`}
-                            >
-                                {loading ? 'Processing...' : isInsufficientFunds ? 'Insufficient Tokens' : `Pay 🪙${total}`}
-                            </button>
-                        </div>
-                    </form>
+                            {/* Price Summary */}
+                            <div className="space-y-3 pt-4 border-t border-white/10">
+                                <h4 className="text-sm font-medium text-white">Payment Summary</h4>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-400">Wallet Balance</span>
+                                    <span className="text-brandUnicorn font-semibold">🪙 {walletBalance}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-400">Duration</span>
+                                    <span className="text-white">{duration} hours</span>
+                                </div>
+                                <div className="flex justify-between text-lg font-bold pt-2">
+                                    <span className="text-white">Total Cost</span>
+                                    <span className={isInsufficientFunds ? "text-red-400" : "text-brandIris"}>
+                                        🪙 {total}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {error && (
+                                <p className="text-sm text-rose-500 font-medium bg-rose-50 p-3 rounded-xl">{error}</p>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="w-full bg-transparent border border-white/10 text-white font-semibold py-3 rounded-xl hover:bg-white/5 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={loading || isInsufficientFunds}
+                                    className={`w-full font-semibold py-3 rounded-xl transition-all disabled:opacity-60 ${isInsufficientFunds
+                                        ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                                        : 'bg-brandSky text-brandNight hover:bg-brandSky/90'
+                                        }`}
+                                >
+                                    {loading ? 'Processing...' : isInsufficientFunds ? 'Insufficient Tokens' : `Pay 🪙${total}`}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

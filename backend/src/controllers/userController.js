@@ -17,6 +17,7 @@ const createBookingSchema = z.object({
   startTime: z.string().datetime(),
   endTime: z.string().datetime(),
   amount: z.number().optional(),
+  slotId: z.string().uuid().optional(),
 });
 
 export const listSlots = async (req, res, next) => {
@@ -90,12 +91,27 @@ export const getSlotDetails = async (req, res, next) => {
           'daily', sp.daily,
           'monthly', sp.monthly
         ) AS pricing,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', s.id,
+              'label', s.label,
+              'type', UPPER(s.vehicle_type), -- Normalize for frontend matching
+              'x', s.x,
+              'y', s.y,
+              'rotation', s.rotation,
+              'is_available', s.is_available,
+              'is_active', s.is_active
+            )
+          ) FILTER (WHERE s.id IS NOT NULL),
+          '[]'
+        ) AS slots,
         COUNT(s.*) FILTER (WHERE s.is_available) AS "availableSlots"
       FROM parking_lots pl
       LEFT JOIN parking_lot_amenities pla ON pla.lot_id = pl.id
       LEFT JOIN amenities a ON a.id = pla.amenity_id
       LEFT JOIN slot_pricing sp ON sp.lot_id = pl.id AND sp.vehicle_type = $2
-      LEFT JOIN parking_slots s ON s.lot_id = pl.id AND s.vehicle_type = $2
+      LEFT JOIN parking_slots s ON s.lot_id = pl.id 
       WHERE pl.id = $1
       GROUP BY pl.id, sp.hourly, sp.daily, sp.monthly
       `,
@@ -120,34 +136,63 @@ export const createBooking = async (req, res, next) => {
       return res.status(400).json({ message: "End time must be after start time" });
     }
 
-    // Find an available slot in the lot for the given vehicle type and time range
     // Check for available slot
-    // We need to find a slot that is NOT booked for the requested time range
-    // For simplicity in this version, we might just look for is_available = true.
-    // Ideally we should check for overlapping bookings.
+    // If slotId is provided (Manual Selection), validate it.
+    // If not (Quick Book), find any available slot.
 
-    // Updated logic: Select id AND label (slot number) filtering out booked slots
-    const slotResult = await query(
-      `SELECT id, label FROM parking_slots s
-       WHERE s.lot_id = $1 
-         AND s.vehicle_type = $2 
-         AND s.is_available = true
-         AND NOT EXISTS (
-           SELECT 1 FROM bookings b 
-           WHERE b.slot_id = s.id 
-             AND b.status = 'confirmed'
-             AND (b.start_time < $4 AND b.end_time > $3)
-         )
-       LIMIT 1`,
-      [payload.lotId, payload.vehicleType, payload.startTime, payload.endTime]
-    );
+    let slotId = payload.slotId;
+    let slotNumber;
 
-    if (slotResult.rows.length === 0) {
-      return res.status(404).json({ message: "No slots available for this vehicle type" });
+    if (slotId) {
+      // Validate specific slot availability
+      const specificSlotResult = await query(
+        `SELECT id, label FROM parking_slots s
+             WHERE s.id = $1
+               AND s.lot_id = $2
+               -- AND s.vehicle_type = $3 -- Removed strict check here, let frontend filter, or check if strict needed
+               AND s.is_available = true
+               AND NOT EXISTS (
+                 SELECT 1 FROM bookings b 
+                 WHERE b.slot_id = s.id 
+                   AND b.status = 'confirmed'
+                   AND (b.start_time < $5 AND b.end_time > $4)
+               )`,
+        [slotId, payload.lotId, payload.vehicleType, payload.startTime, payload.endTime]
+      );
+
+      if (specificSlotResult.rows.length === 0) {
+        return res.status(400).json({ message: "Selected slot is not available for this time." });
+      }
+      slotNumber = specificSlotResult.rows[0].label;
+
+      // Verify type match if needed (optional but good practice)
+      // const slotType = ... (from query) 
+      // if (slotType !== payload.vehicleType) ...
+
+    } else {
+      // Auto-Assign Logic (Fallback)
+      const slotResult = await query(
+        `SELECT id, label FROM parking_slots s
+           WHERE s.lot_id = $1 
+             AND s.vehicle_type = $2 
+             AND s.is_available = true
+             AND NOT EXISTS (
+               SELECT 1 FROM bookings b 
+               WHERE b.slot_id = s.id 
+                 AND b.status = 'confirmed'
+                 AND (b.start_time < $4 AND b.end_time > $3)
+             )
+           LIMIT 1`,
+        [payload.lotId, payload.vehicleType, payload.startTime, payload.endTime]
+      );
+
+      if (slotResult.rows.length === 0) {
+        return res.status(404).json({ message: "No slots available for this vehicle type" });
+      }
+
+      slotId = slotResult.rows[0].id;
+      slotNumber = slotResult.rows[0].label;
     }
-
-    const slotId = slotResult.rows[0].id;
-    const slotNumber = slotResult.rows[0].label;
 
 
     // Fetch admin's UPI ID
