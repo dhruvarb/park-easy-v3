@@ -149,15 +149,15 @@ export const createBooking = async (req, res, next) => {
         `SELECT id, label FROM parking_slots s
              WHERE s.id = $1
                AND s.lot_id = $2
-               -- AND s.vehicle_type = $3 -- Removed strict check here, let frontend filter, or check if strict needed
+               -- AND s.vehicle_type = $3
                AND s.is_available = true
                AND NOT EXISTS (
                  SELECT 1 FROM bookings b 
                  WHERE b.slot_id = s.id 
                    AND b.status = 'confirmed'
-                   AND (b.start_time < $5 AND b.end_time > $4)
+                   AND (b.start_time < $4 AND b.end_time > $3)
                )`,
-        [slotId, payload.lotId, payload.vehicleType, payload.startTime, payload.endTime]
+        [slotId, payload.lotId, payload.startTime, payload.endTime]
       );
 
       if (specificSlotResult.rows.length === 0) {
