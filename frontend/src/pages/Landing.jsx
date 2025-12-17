@@ -62,10 +62,10 @@ export default function Landing() {
               Smart Parking Solution
             </div>
             <h1 className="text-5xl md:text-7xl font-bold leading-tight">
-              <span className="text-white">Find nearby spots,</span>
+              <span className="text-white">Lets find a</span>
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-brandSky via-white to-brandSky">
-                Compare rates.
+                parking space for you
               </span>
             </h1>
             <p className="text-lg text-gray-400 max-w-xl mx-auto lg:mx-0">
