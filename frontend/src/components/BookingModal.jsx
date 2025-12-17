@@ -149,40 +149,20 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
                         <span>🅿️</span> Select Your Spot
                     </h3>
                     {lotDetails?.slots && lotDetails.slots.length > 0 ? (
-                        <div className="flex-1 overflow-auto bg-[#0F172A] rounded-xl border border-white/5 relative">
+                        <div className="flex-1 overflow-auto bg-[#0f172a] rounded-xl border border-white/5 relative w-full flex justify-center items-start p-4">
                             {/* Pass data to grid */}
-                            <div className="transform scale-75 origin-top-left p-4">
-                                <ParkingSlotGrid
-                                    slots={lotDetails.slots.map(s => ({
-                                        ...s,
-                                        type: s.type || 'CAR' // Fallback
-                                    }))}
-                                    bookings={[]} // We rely on 'is_available' flag for now or fetch bookings if needed for overlap
-                                    // Actually, is_available in DB is static 'true'. 
-                                    // Real availability depends on bookings. 
-                                    // However, for Simplification Step 1, we assume slots are mostly open or we need to fetch bookings.
-                                    // But 'getSlotDetails' response calculated 'availableSlots' count filtering bookings? 
-                                    // No, the query in 'getSlotDetails' did `COUNT(s.*) FILTER (WHERE s.is_available)`. 
-                                    // It does NOT join bookings to exclude them in the list.
-                                    // SO, visual map might show a booked slot as available until user clicks it.
-                                    // FIX: We should ideally fetch current bookings for this Time Window to mark red?
-                                    // FOR NOW: Let user click, and backend rejects if booked.
-                                    // OR: 'getSlotDetails' could have returned `is_booked_in_window` flag.
-                                    // Let's stick to backend rejection to stay simple for now, or just simple static grid.
-
-                                    selectedSlot={selectedGridSlot}
-                                    onSelectSlot={(s) => {
-                                        // Only select if type matches vehicle (optional)
-                                        // And if not 'wall'/'road'
-                                        if (s.type === 'WALL' || s.type === 'ROAD' || s.type === 'ENTRY') return;
-                                        setSelectedGridSlot(s);
-                                        setError('');
-                                    }}
-                                    userVehicleType={vehicleType}
-                                    previewMode={false} // Interactive
-                                    readOnly={false}
-                                />
-                            </div>
+                            <ParkingSlotGrid
+                                slots={lotDetails.slots.map(s => ({
+                                    ...s,
+                                    type: s.type || 'CAR' // Fallback
+                                }))}
+                                bookings={[]} // We rely on 'is_available' flag for now or fetch bookings if needed for overlap
+                                selectedSlot={selectedGridSlot}
+                                onSelectSlot={setSelectedGridSlot}
+                                userVehicleType={vehicleType}
+                                queryStartTime={`${date}T${startTime}`}
+                                queryEndTime={`${date}T${endTime}`}
+                            />
                         </div>
                     ) : (
                         <div className="flex-1 flex items-center justify-center text-gray-500">
@@ -333,7 +313,7 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
                         </form>
                     </div>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
