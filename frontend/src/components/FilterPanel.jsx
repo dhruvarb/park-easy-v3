@@ -1,10 +1,9 @@
-// src/components/FilterPanel.jsx
 const vehicleTypes = [
-  { id: "bike", label: "Bike" },
-  { id: "car", label: "Car" },
-  { id: "ev_bike", label: "EV Bike" },
-  { id: "ev_car", label: "EV Car" },
-  { id: "bus", label: "Bus" },
+  { id: "bike", label: "Bike", icon: "🏍️" },
+  { id: "car", label: "Car", icon: "🚗" },
+  { id: "ev_bike", label: "EV Bike", icon: "🛵⚡" },
+  { id: "ev_car", label: "EV Car", icon: "🚙⚡" },
+  { id: "bus", label: "Bus", icon: "🚌" },
 ];
 
 const durations = ["Hourly", "Daily", "Monthly"];
@@ -23,11 +22,12 @@ export default function FilterPanel({ filters, onChange }) {
             <button
               key={v.id}
               onClick={() => setFilter("vehicle", v.id)}
-              className={`rounded-xl py-2 text-sm font-semibold transition-all ${filters.vehicle === v.id
+              className={`rounded-xl py-2 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${filters.vehicle === v.id
                 ? "bg-brandSky text-brandNight"
                 : "bg-white/5 text-white/70 hover:bg-white/15"
                 }`}
             >
+              <span className="text-lg">{v.icon}</span>
               {v.label}
             </button>
           ))}
