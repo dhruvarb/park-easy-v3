@@ -149,7 +149,7 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess }) 
                         <span>🅿️</span> Select Your Spot
                     </h3>
                     {lotDetails?.slots && lotDetails.slots.length > 0 ? (
-                        <div className="flex-1 overflow-auto bg-[#0f172a] rounded-xl border border-white/5 relative w-full flex justify-center items-start p-4">
+                        <div className="flex-1 overflow-auto bg-[#0f172a] rounded-xl border border-white/5 relative w-full p-4">
                             {/* Pass data to grid */}
                             <ParkingSlotGrid
                                 slots={lotDetails.slots.map(s => ({

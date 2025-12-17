@@ -81,7 +81,7 @@ const ParkingSlotGrid = ({
     };
 
     return (
-        <div className="w-full overflow-hidden flex flex-col items-center">
+        <div className="w-full flex flex-col">
             {/* Legend */}
             <div className="flex flex-wrap gap-4 mb-4 justify-center text-xs text-gray-400">
                 <div className="flex items-center gap-1"><div className="w-3 h-3 bg-gray-800 border border-white/20 rounded-sm"></div> <span className="text-gray-300">Available</span></div>
@@ -91,7 +91,7 @@ const ParkingSlotGrid = ({
             </div>
 
             <div
-                className="relative bg-[#1e3a8a] p-6 rounded-xl shadow-2xl overflow-auto border-4 border-white/10"
+                className="relative bg-[#1e3a8a] p-6 rounded-xl shadow-2xl overflow-auto border-4 border-white/10 mx-auto"
                 style={{
                     // Blueprint Blue background
                     width: 'fit-content',
