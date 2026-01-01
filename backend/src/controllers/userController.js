@@ -136,17 +136,46 @@ export const getSlotDetails = async (req, res, next) => {
 
     // If no available slots, fetch nearby lots
     let nearbyLots = [];
-    if (parseInt(slotDetails.availableSlots) === 0 && slotDetails.city) {
-      const nearbyRes = await query(
-        `SELECT id, name, address, city, images, 
-             (SELECT COUNT(*) FROM parking_slots s WHERE s.lot_id = parking_lots.id AND s.is_available = true) as "availableSlots"
-             FROM parking_lots 
-             WHERE city = $1 AND id != $2 
-             AND (SELECT COUNT(*) FROM parking_slots s WHERE s.lot_id = parking_lots.id AND s.is_available = true) > 0
-             LIMIT 3`,
-        [slotDetails.city, id]
-      );
-      nearbyLots = nearbyRes.rows;
+    if (parseInt(slotDetails.availableSlots) === 0) {
+      if (slotDetails.latitude && slotDetails.longitude) {
+        // Priority 1: Spatial Search (within ~10km)
+        const lat = slotDetails.latitude;
+        const lng = slotDetails.longitude;
+
+        const nearbyRes = await query(
+          `SELECT id, name, address, city, images, 
+                 (SELECT COUNT(*) FROM parking_slots s WHERE s.lot_id = parking_lots.id AND s.is_available = true) as "availableSlots",
+                 (
+                     6371 * acos(
+                         LEAST(1.0, GREATEST(-1.0, 
+                             cos(radians($1)) * cos(radians(latitude)) * cos(radians(longitude) - radians($2)) + 
+                             sin(radians($1)) * sin(radians(latitude))
+                         ))
+                     )
+                 ) as distance
+                 FROM parking_lots 
+                 WHERE id != $3 
+                 AND (SELECT COUNT(*) FROM parking_slots s WHERE s.lot_id = parking_lots.id AND s.is_available = true) > 0
+                 ORDER BY distance ASC
+                 LIMIT 3`,
+          [lat, lng, id]
+        );
+        nearbyLots = nearbyRes.rows;
+      }
+
+      // Priority 2: City Fallback (if no lat/long or no spatial results)
+      if (nearbyLots.length === 0 && slotDetails.city) {
+        const nearbyRes = await query(
+          `SELECT id, name, address, city, images, 
+                 (SELECT COUNT(*) FROM parking_slots s WHERE s.lot_id = parking_lots.id AND s.is_available = true) as "availableSlots"
+                 FROM parking_lots 
+                 WHERE city = $1 AND id != $2 
+                 AND (SELECT COUNT(*) FROM parking_slots s WHERE s.lot_id = parking_lots.id AND s.is_available = true) > 0
+                 LIMIT 3`,
+          [slotDetails.city, id]
+        );
+        nearbyLots = nearbyRes.rows;
+      }
     }
 
     return res.json({ slot: { ...slotDetails, nearbyLots } });
