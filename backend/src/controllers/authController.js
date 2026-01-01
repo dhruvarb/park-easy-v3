@@ -187,3 +187,87 @@ export const updateProfile = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    // Check user exists
+    const userRes = await query("SELECT id FROM users WHERE email = $1", [email]);
+    if (userRes.rowCount === 0) {
+      return res.json({ message: "If account exists, an OTP has been sent." });
+    }
+
+    // Generate 6 digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+    // Upsert OTP
+    await query(
+      `INSERT INTO otp_verifications (email, otp, expires_at)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (email) DO UPDATE SET otp = $2, expires_at = $3`,
+      [email, otp, expiresAt]
+    );
+
+    // Send Email
+    const { sendEmail } = await import("../utils/email.js");
+    await sendEmail({
+      to: email,
+      subject: "Password Reset OTP - ParkEasy",
+      text: `Your OTP for password reset is: ${otp}. It expires in 10 minutes.`
+    });
+
+    res.json({ message: "OTP sent successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Verify OTP
+    const otpRes = await query(
+      "SELECT * FROM otp_verifications WHERE email = $1 AND otp = $2 AND expires_at > NOW()",
+      [email, otp]
+    );
+
+    if (otpRes.rowCount === 0) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    // Hash new password
+    const passwordHash = await hashPassword(newPassword);
+
+    // Update User and return user info for auto login
+    const { rows } = await query(
+      `UPDATE users 
+       SET password_hash = $1 
+       WHERE email = $2 
+       RETURNING id, role, full_name, email, is_verified, upi_id`,
+      [passwordHash, email]
+    );
+
+    const user = rows[0];
+
+    // Delete OTP
+    await query("DELETE FROM otp_verifications WHERE email = $1", [email]);
+
+    // Sign Token
+    const token = signToken({
+      id: user.id,
+      role: user.role,
+      email: user.email,
+    });
+
+    res.json({ message: "Password reset successfully.", token, user });
+  } catch (error) {
+    next(error);
+  }
+};

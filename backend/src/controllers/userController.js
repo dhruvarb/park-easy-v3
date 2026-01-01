@@ -85,35 +85,45 @@ export const getSlotDetails = async (req, res, next) => {
         pl.total_capacity AS "totalCapacity",
         pl.capacity_breakdown AS "capacityBreakdown",
         COALESCE(pl.images, '{}') AS images,
-        COALESCE(json_agg(DISTINCT a.label) FILTER (WHERE a.label IS NOT NULL), '[]') AS amenities,
-        jsonb_build_object(
-          'hourly', sp.hourly,
-          'daily', sp.daily,
-          'monthly', sp.monthly
+        COALESCE((
+          SELECT json_agg(a.label)
+          FROM parking_lot_amenities pla
+          JOIN amenities a ON pla.amenity_id = a.id
+          WHERE pla.lot_id = pl.id
+        ), '[]') AS amenities,
+        (
+          SELECT json_build_object(
+            'hourly', sp.hourly,
+            'daily', sp.daily,
+            'monthly', sp.monthly
+          )
+          FROM slot_pricing sp
+          WHERE sp.lot_id = pl.id AND sp.vehicle_type = $2
+          LIMIT 1
         ) AS pricing,
-        COALESCE(
-          json_agg(
+        COALESCE((
+          SELECT json_agg(
             json_build_object(
               'id', s.id,
               'label', s.label,
-              'type', UPPER(s.vehicle_type), -- Normalize for frontend matching
+              'type', UPPER(s.vehicle_type),
               'x', s.x,
               'y', s.y,
               'rotation', s.rotation,
               'is_available', s.is_available,
               'is_active', s.is_active
             )
-          ) FILTER (WHERE s.id IS NOT NULL),
-          '[]'
-        ) AS slots,
-        COUNT(s.*) FILTER (WHERE s.is_available) AS "availableSlots"
+          )
+          FROM parking_slots s
+          WHERE s.lot_id = pl.id
+        ), '[]') AS slots,
+        (
+           SELECT COUNT(*) 
+           FROM parking_slots s2 
+           WHERE s2.lot_id = pl.id AND s2.is_available = true
+        ) AS "availableSlots"
       FROM parking_lots pl
-      LEFT JOIN parking_lot_amenities pla ON pla.lot_id = pl.id
-      LEFT JOIN amenities a ON a.id = pla.amenity_id
-      LEFT JOIN slot_pricing sp ON sp.lot_id = pl.id AND sp.vehicle_type = $2
-      LEFT JOIN parking_slots s ON s.lot_id = pl.id 
       WHERE pl.id = $1
-      GROUP BY pl.id, sp.hourly, sp.daily, sp.monthly
       `,
       [id, vehicleType]
     );
@@ -122,7 +132,24 @@ export const getSlotDetails = async (req, res, next) => {
       return res.status(404).json({ message: "Parking slot not found" });
     }
 
-    return res.json({ slot: rows[0] });
+    const slotDetails = rows[0];
+
+    // If no available slots, fetch nearby lots
+    let nearbyLots = [];
+    if (parseInt(slotDetails.availableSlots) === 0 && slotDetails.city) {
+      const nearbyRes = await query(
+        `SELECT id, name, address, city, images, 
+             (SELECT COUNT(*) FROM parking_slots s WHERE s.lot_id = parking_lots.id AND s.is_available = true) as "availableSlots"
+             FROM parking_lots 
+             WHERE city = $1 AND id != $2 
+             AND (SELECT COUNT(*) FROM parking_slots s WHERE s.lot_id = parking_lots.id AND s.is_available = true) > 0
+             LIMIT 3`,
+        [slotDetails.city, id]
+      );
+      nearbyLots = nearbyRes.rows;
+    }
+
+    return res.json({ slot: { ...slotDetails, nearbyLots } });
   } catch (error) {
     return next(error);
   }
@@ -149,14 +176,14 @@ export const createBooking = async (req, res, next) => {
         `SELECT id, label FROM parking_slots s
              WHERE s.id = $1
                AND s.lot_id = $2
-               -- AND s.vehicle_type = $3
+--AND s.vehicle_type = $3
                AND s.is_available = true
-               AND NOT EXISTS (
-                 SELECT 1 FROM bookings b 
+               AND NOT EXISTS(
+  SELECT 1 FROM bookings b 
                  WHERE b.slot_id = s.id 
                    AND b.status = 'confirmed'
-                   AND (b.start_time < $4 AND b.end_time > $3)
-               )`,
+                   AND(b.start_time < $4 AND b.end_time > $3)
+)`,
         [slotId, payload.lotId, payload.startTime, payload.endTime]
       );
 
@@ -176,12 +203,12 @@ export const createBooking = async (req, res, next) => {
            WHERE s.lot_id = $1 
              AND s.vehicle_type = $2 
              AND s.is_available = true
-             AND NOT EXISTS (
-               SELECT 1 FROM bookings b 
+             AND NOT EXISTS(
+  SELECT 1 FROM bookings b 
                WHERE b.slot_id = s.id 
                  AND b.status = 'confirmed'
-                 AND (b.start_time < $4 AND b.end_time > $3)
-             )
+                 AND(b.start_time < $4 AND b.end_time > $3)
+)
            LIMIT 1`,
         [payload.lotId, payload.vehicleType, payload.startTime, payload.endTime]
       );
@@ -210,27 +237,29 @@ export const createBooking = async (req, res, next) => {
 
       // Check User Balance
       const balanceRes = await client.query('SELECT tokens FROM users WHERE id = $1', [req.user.id]);
-      const currentBalance = balanceRes.rows[0]?.tokens || 0;
-      const cost = payload.amount || 0;
+      const currentBalance = Number(balanceRes.rows[0]?.tokens || 0); // Force number
+      const cost = Number(payload.amount || 0); // Force number
+
+      console.log(`Booking Debug: User ${req.user.id} has ${currentBalance}, cost is ${cost}`);
 
       if (currentBalance < cost) {
-        throw new Error("Insufficient tokens. Please top up your wallet.");
+        throw new Error(`Insufficient tokens (Have: ${currentBalance}, Need: ${cost})`);
       }
 
       // Deduct Tokens
       await client.query('UPDATE users SET tokens = tokens - $1 WHERE id = $2', [cost, req.user.id]);
       await client.query(
         `INSERT INTO token_transactions(user_id, amount, type, description)
-         VALUES($1, $2, 'debit', 'Parking Booking')`,
+VALUES($1, $2, 'debit', 'Parking Booking')`,
         [req.user.id, cost]
       );
 
       const { rows } = await client.query(
         `
           INSERT INTO bookings(slot_id, user_id, start_time, end_time, amount_paid, status)
-          VALUES($1, $2, $3, $4, $5, 'confirmed')
-          RETURNING *
-      `,
+VALUES($1, $2, $3, $4, $5, 'confirmed')
+RETURNING *
+  `,
         [
           slotId,
           req.user.id,
@@ -280,20 +309,20 @@ export const listBookings = async (req, res) => {
     console.log("Fetching bookings for user:", req.user.id);
     const result = await query(
       `
-      SELECT 
-        b.id,
-      b.start_time,
-      b.end_time,
-      b.amount_paid,
-      b.status,
-      b.created_at,
-      pl.name as lot_name,
-      pl.address,
-      pl.latitude,
-      pl.longitude,
-      ps.vehicle_type,
-      ps.is_ev,
-      (SELECT status FROM refund_requests rr WHERE rr.booking_id = b.id LIMIT 1) as refund_status
+SELECT
+b.id,
+  b.start_time,
+  b.end_time,
+  b.amount_paid,
+  b.status,
+  b.created_at,
+  pl.name as lot_name,
+  pl.address,
+  pl.latitude,
+  pl.longitude,
+  ps.vehicle_type,
+  ps.is_ev,
+  (SELECT status FROM refund_requests rr WHERE rr.booking_id = b.id LIMIT 1) as refund_status
       FROM bookings b
       JOIN parking_slots ps ON b.slot_id = ps.id
       JOIN parking_lots pl ON ps.lot_id = pl.id
@@ -354,7 +383,7 @@ export const requestRefund = async (req, res) => {
 
     await query(
       `INSERT INTO refund_requests(booking_id, user_id, reason)
-    VALUES($1, $2, $3)`,
+VALUES($1, $2, $3)`,
       [bookingId, req.user.id, reason]
     );
 
@@ -390,7 +419,7 @@ export const topUpWallet = async (req, res) => {
       // Log Transaction
       await client.query(
         `INSERT INTO token_transactions(user_id, amount, type, description)
-         VALUES($1, $2, 'credit', 'Wallet Top Up')`,
+VALUES($1, $2, 'credit', 'Wallet Top Up')`,
         [req.user.id, amount]
       );
 
@@ -441,7 +470,7 @@ export const cancelBooking = async (req, res) => {
         await client.query('UPDATE users SET tokens = tokens + $1 WHERE id = $2', [refundAmount, req.user.id]);
         await client.query(
           `INSERT INTO token_transactions(user_id, amount, type, description)
-           VALUES($1, $2, 'credit', 'Booking Refund')`,
+VALUES($1, $2, 'credit', 'Booking Refund')`,
           [req.user.id, refundAmount]
         );
       }
@@ -496,7 +525,7 @@ export const checkoutBooking = async (req, res) => {
         await client.query('UPDATE users SET tokens = tokens - $1 WHERE id = $2', [penalty, req.user.id]);
         await client.query(
           `INSERT INTO token_transactions(user_id, amount, type, description)
-                 VALUES($1, $2, 'debit', 'Late Checkout Penalty')`,
+VALUES($1, $2, 'debit', 'Late Checkout Penalty')`,
           [req.user.id, penalty]
         );
       }
@@ -560,15 +589,15 @@ export const listFavorites = async (req, res) => {
 
     const result = await query(
       `
-    SELECT
-    pl.id,
-      pl.name,
-      pl.address,
-      pl.has_ev,
-      pl.latitude,
-      pl.longitude,
-      (
-        SELECT json_agg(label)
+SELECT
+pl.id,
+  pl.name,
+  pl.address,
+  pl.has_ev,
+  pl.latitude,
+  pl.longitude,
+  (
+    SELECT json_agg(label)
             FROM parking_lot_amenities pla
             JOIN amenities a ON pla.amenity_id = a.id
             WHERE pla.lot_id = pl.id

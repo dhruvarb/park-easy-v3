@@ -31,13 +31,7 @@ export default function UserLayout() {
                     tabBarIcon: ({ color, size }) => <Ionicons name="calendar" size={size} color={color} />,
                 }}
             />
-            <Tabs.Screen
-                name="favorites"
-                options={{
-                    title: 'Favorites',
-                    tabBarIcon: ({ color, size }) => <Ionicons name="heart" size={size} color={color} />,
-                }}
-            />
+
             <Tabs.Screen
                 name="profile"
                 options={{

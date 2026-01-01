@@ -17,6 +17,8 @@ api.interceptors.request.use(
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
             }
+            // Bypass LocalTunnel warning page
+            config.headers['Bypass-Tunnel-Reminder'] = 'true';
         } catch (error) {
             console.error('Error retrieving token', error);
         }
@@ -34,6 +36,8 @@ api.interceptors.response.use(
 export const authApi = {
     signup: (payload: any) => api.post('/auth/signup', payload) as Promise<any>,
     login: (payload: any) => api.post('/auth/login', payload) as Promise<any>,
+    forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }) as Promise<any>,
+    resetPassword: (payload: any) => api.post('/auth/reset-password', payload) as Promise<any>,
     me: () => api.get('/auth/me') as Promise<any>,
     updateProfile: (data: any) => api.patch('/auth/me', data) as Promise<any>,
 };
@@ -50,6 +54,7 @@ export const userApi = {
     addFavorite: (lotId: string) => api.post('/user/favorites', { lotId }) as Promise<any>,
     removeFavorite: (lotId: string) => api.delete(`/user/favorites/${lotId}`) as Promise<any>,
     getWalletBalance: () => api.get('/user/wallet/balance') as Promise<any>,
+    topUpWallet: (amount: number) => api.post('/user/wallet/topup', { amount }) as Promise<any>,
     getReviews: (lotId: string) => api.get(`/user/slots/${lotId}/reviews`) as Promise<any>,
     addReview: (data: any) => api.post('/user/reviews', data) as Promise<any>,
 };

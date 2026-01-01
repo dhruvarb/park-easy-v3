@@ -2,7 +2,7 @@ import "../global.css";
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Text } from 'react-native';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -39,8 +39,9 @@ function RootLayoutNav() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 justify-center items-center bg-slate-900">
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
+        <ActivityIndicator size="large" color="#38bdf8" />
+        <Text style={{ color: '#94a3b8', marginTop: 20, fontSize: 16 }}>Loading ParkEasy...</Text>
       </View>
     );
   }

@@ -9,9 +9,9 @@ if (!pool) {
   pool = new Pool({
     connectionString: env.databaseUrl,
     ssl: env.dbSSL ? { rejectUnauthorized: false } : undefined,
-    max: 1, // Limit connections in serverless to avoid exhausting Supabase limits
+    max: 10, // Increased from 1
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 10000, // Increased from 2000
   });
 }
 

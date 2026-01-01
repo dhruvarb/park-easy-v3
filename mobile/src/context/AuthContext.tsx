@@ -22,10 +22,24 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<any | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    // DEBUG: Start with loading false to force app open
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        loadUser();
+        // DEBUG: Skip auto-load for now to unblock app
+        // loadUser();
+
+        // Safety valve remains but is redundant if isLoading starts false
+        /*
+        const safetyTimer = setTimeout(() => {
+            setIsLoading((prev) => {
+                if (prev) console.log("AuthContext: Safety timer triggered");
+                return false;
+            });
+        }, 4000);
+
+        return () => clearTimeout(safetyTimer);
+        */
     }, []);
 
     const loadUser = async () => {
@@ -33,11 +47,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const token = await SecureStore.getItemAsync('pe_token');
             if (token) {
                 try {
-                    const userData = await authApi.me();
-                    setUser(userData.user);
+                    // Timeout after 3 seconds to prevent infinite splash screen
+                    const userData = await Promise.race([
+                        authApi.me(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 3000))
+                    ]);
+                    setUser((userData as any).user);
                 } catch (err) {
                     console.log("Token invalid or network error", err);
-                    await SecureStore.deleteItemAsync('pe_token');
                 }
             }
         } catch (e) {

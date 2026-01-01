@@ -74,6 +74,8 @@ export default function AuthScreen() {
         }
     };
 
+    // Forgot password state and handler removed as per user request to revert.
+
     return (
         <SafeAreaView className="flex-1 bg-[#0f172a]">
             <StatusBar style="light" />
@@ -150,6 +152,8 @@ export default function AuthScreen() {
                         />
                     </View>
 
+
+
                     {mode === 'signup' && (
                         <View>
                             <Text className="text-slate-400 mb-2 font-medium">Phone Number</Text>
@@ -194,6 +198,8 @@ export default function AuthScreen() {
 
                 </View>
             </ScrollView>
+
+
         </SafeAreaView>
     );
 }

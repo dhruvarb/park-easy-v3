@@ -23,23 +23,13 @@ export default function ParkingDetailsScreen() {
     const fetchDetails = async () => {
         try {
             setLoading(true);
-            const res = await (userApi as any).getLot(id);
-            setSlot(res.slot);
+            const [lotRes, walletRes] = await Promise.all([
+                (userApi as any).getLot(id),
+                (userApi as any).getWalletBalance()
+            ]);
 
-            // Fetch balance
-            // API.me() returns user which might have wallet or a separate wallet endpoint?
-            // UserDashboard.jsx used /user/wallet/balance?
-            // Let's check api.ts... I define `getPaymentHistory` etc but not wallet balance specifically or `me` doesn't return it?
-            // In UserDashboard.jsx: await api.get('/user/wallet/balance');
-            // I need to add this to api.ts or use raw call.
-            // Let's assume authApi.me() returns balance or I'll add `getWalletBalance`.
-            // I'll add it to api.ts via casting for now.
-            const balanceRes = await (userApi as any).getWalletBalance ? (userApi as any).getWalletBalance() : { tokens: 0 };
-            // Actually I didn't add getWalletBalance to api.ts.
-            // I'll try to use a raw axios call if I can access `api` instance, OR fetch `me()` if it has it.
-            // Actually, let's just default to 0 and fix api.ts later or assume user has some.
-            // Better: I will use `authApi.me()` and check if it has balance, or I will update api.ts.
-            // I'll update api.ts to include `getWalletBalance`.
+            setSlot(lotRes.slot);
+            setWalletBalance(Number(walletRes.tokens || 0));
 
         } catch (error) {
             console.error(error);

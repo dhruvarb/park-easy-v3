@@ -5,6 +5,7 @@ import { format, addHours, differenceInMinutes, parseISO } from 'date-fns';
 import { userApi } from '../src/services/api';
 import clsx from 'clsx';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import ParkingSlotGrid from './ParkingSlotGrid';
 
 interface BookingModalProps {
     slot: any;
@@ -15,6 +16,7 @@ interface BookingModalProps {
 }
 
 export default function BookingModal({ slot, vehicleType, onClose, onSuccess, walletBalance }: BookingModalProps) {
+    const [selectedSlot, setSelectedSlot] = useState<any>(null);
     const [date, setDate] = useState(new Date());
     const [startTime, setStartTime] = useState(addHours(new Date(), 1));
     const [endTime, setEndTime] = useState(addHours(new Date(), 3));
@@ -30,17 +32,14 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess, wa
     const hourly = Number(pricing.hourly) || 0;
     const daily = Number(pricing.daily) || 0;
 
+    // ... (useMemo remains same) ...
     const { total, durationLabel } = useMemo(() => {
-        // Construct full Date objects
-        // We need to merge 'date' (day) with 'startTime' (hours/mins) and 'endTime'
-
         const s = new Date(date);
         s.setHours(startTime.getHours(), startTime.getMinutes());
 
         const e = new Date(date);
         e.setHours(endTime.getHours(), endTime.getMinutes());
 
-        // Helper to handle if end time is next day (e.g. 11 PM to 1 AM)
         if (e < s) {
             e.setDate(e.getDate() + 1);
         }
@@ -69,6 +68,10 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess, wa
             Alert.alert("Required", "Please enter vehicle license plate");
             return;
         }
+        if (!selectedSlot && slot.slots && slot.slots.length > 0) {
+            Alert.alert("Required", "Please select a parking slot");
+            return;
+        }
         if (total > walletBalance) {
             Alert.alert("Insufficient Funds", "Please add tokens to your wallet");
             return;
@@ -88,19 +91,22 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess, wa
                 vehicleType,
                 startTime: s.toISOString(),
                 endTime: e.toISOString(),
-                amount: total
+                amount: total,
+                slotId: selectedSlot?.id // Pass selected slot ID
             };
 
             const res = await (userApi as any).createBooking(payload);
-            const bookedSlot = res.booking; // or res.slotNumber based on frontend modal
-            onSuccess(bookedSlot?.id || 'Assigned');
+            const bookedSlot = res.slotNumber; // backend returns slotNumber label
+            onSuccess(bookedSlot || 'Assigned');
         } catch (error: any) {
+            console.error(error);
             Alert.alert("Booking Failed", error.response?.data?.message || error.message);
         } finally {
             setLoading(false);
         }
     };
 
+    // ... (Date handlers remain same) ...
     const onChangeDate = (event: any, selectedDate?: Date) => {
         const currentDate = selectedDate || date;
         setShowPicker(Platform.OS === 'ios');
@@ -119,15 +125,34 @@ export default function BookingModal({ slot, vehicleType, onClose, onSuccess, wa
     };
 
     return (
-        <View className="bg-slate-900 mx-4 rounded-3xl p-6 border border-white/10 max-h-[80%]">
+        <View className="bg-slate-900 mx-4 rounded-3xl p-6 border border-white/10 max-h-[90%] flex-1 mt-10">
             <View className="flex-row justify-between items-center mb-6">
-                <Text className="text-xl font-bold text-white">Booking Details</Text>
+                <Text className="text-xl font-bold text-white">Select Slot & Book</Text>
                 <TouchableOpacity onPress={onClose}>
                     <Ionicons name="close-circle" size={28} color="#94a3b8" />
                 </TouchableOpacity>
             </View>
 
-            <ScrollView>
+            <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 20 }}>
+
+                {/* Visual Grid */}
+                <View className="bg-slate-950 rounded-xl border border-white/10 p-4 mb-6 h-80">
+                    <Text className="text-slate-400 mb-2 text-xs uppercase tracking-wider font-bold">Parking Layout</Text>
+                    <ParkingSlotGrid
+                        slots={slot.slots || []}
+                        selectedSlotId={selectedSlot?.id}
+                        onSelectSlot={setSelectedSlot}
+                        userVehicleType={vehicleType}
+                    />
+                </View>
+
+                {selectedSlot && (
+                    <View className="bg-sky-500/10 border border-sky-500/30 p-3 rounded-lg mb-4 flex-row items-center justify-between">
+                        <Text className="text-sky-400 font-bold">Selected Slot: {selectedSlot.label}</Text>
+                        <Ionicons name="checkmark-circle" size={20} color="#38bdf8" />
+                    </View>
+                )}
+
                 {/* Date Selection */}
                 <View className="mb-4">
                     <Text className="text-slate-400 mb-2 font-medium">Date</Text>

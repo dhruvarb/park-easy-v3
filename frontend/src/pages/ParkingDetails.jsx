@@ -483,12 +483,48 @@ export default function ParkingDetails() {
                                 </div>
                             </div>
 
-                            <button
-                                onClick={() => setShowBookingModal(true)}
-                                className="w-full bg-brandSky text-brandNight font-bold py-4 rounded-xl hover:bg-brandSky/90 transition-all shadow-lg shadow-brandSky/20 mb-6"
-                            >
-                                Book Now
-                            </button>
+                            {parseInt(slot.availableSlots) > 0 ? (
+                                <button
+                                    onClick={() => setShowBookingModal(true)}
+                                    className="w-full bg-brandSky text-brandNight font-bold py-4 rounded-xl hover:bg-brandSky/90 transition-all shadow-lg shadow-brandSky/20 mb-6"
+                                >
+                                    Book Now
+                                </button>
+                            ) : (
+                                <div className="space-y-4 mb-6">
+                                    <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl text-center font-bold">
+                                        Parking Full
+                                    </div>
+
+                                    {slot.nearbyLots && slot.nearbyLots.length > 0 && (
+                                        <div className="space-y-3">
+                                            <h4 className="text-white font-medium text-sm">Nearby Alternatives:</h4>
+                                            {slot.nearbyLots.map(nearby => (
+                                                <button
+                                                    key={nearby.id}
+                                                    onClick={() => navigate(`/parking/${nearby.id}`)}
+                                                    className="w-full bg-brandIndigo hover:bg-white/5 border border-white/10 p-3 rounded-xl flex items-center gap-3 transition-all text-left group"
+                                                >
+                                                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-brandNight shrink-0">
+                                                        <img
+                                                            src={nearby.images && nearby.images.length > 0 ? `${API_BASE}${nearby.images[0]}` : "https://images.unsplash.com/photo-1506521781263-d8422e82f27a?auto=format&fit=crop&w=100&q=80"}
+                                                            alt={nearby.name}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="text-white font-medium truncate group-hover:text-brandSky transition-colors">{nearby.name}</div>
+                                                        <div className="text-xs text-green-400">{nearby.availableSlots} slots available</div>
+                                                    </div>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-gray-500 group-hover:text-white transition-colors">
+                                                        <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
+                                                    </svg>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <div className="space-y-4 border-b border-white/5 pb-6 mb-6">
                                 <div className="flex items-center justify-between text-sm">

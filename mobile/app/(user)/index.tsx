@@ -28,7 +28,35 @@ export default function UserDashboard() {
 
     const [city, setCity] = useState<string | null>(null);
     const [userLocation, setUserLocation] = useState<any>(null);
+    const [walletBalance, setWalletBalance] = useState(0);
+    const [topUpModalVisible, setTopUpModalVisible] = useState(false);
+    const [topUpAmount, setTopUpAmount] = useState('');
     const router = useRouter();
+
+    const fetchWallet = async () => {
+        try {
+            const res = await (userApi as any).getWalletBalance();
+            setWalletBalance(res.tokens);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    const handleTopUp = async () => {
+        if (!topUpAmount || isNaN(Number(topUpAmount)) || Number(topUpAmount) <= 0) {
+            Alert.alert("Invalid Amount", "Please enter a valid amount");
+            return;
+        }
+        try {
+            await (userApi as any).topUpWallet(Number(topUpAmount)); // Ensure this exists in api.ts
+            setTopUpModalVisible(false);
+            setTopUpAmount('');
+            Alert.alert("Success", "Wallet topped up successfully!");
+            fetchWallet();
+        } catch (error: any) {
+            Alert.alert("Failed", error.response?.data?.message || "Top up failed");
+        }
+    };
 
     useEffect(() => {
         (async () => {
@@ -45,6 +73,7 @@ export default function UserDashboard() {
 
     useEffect(() => {
         fetchSlots();
+        fetchWallet();
     }, [filters, city]);
 
     const fetchSlots = async () => {
@@ -116,6 +145,69 @@ export default function UserDashboard() {
                     <Ionicons name={viewMode === 'list' ? "map" : "list"} size={24} color="#38bdf8" />
                 </TouchableOpacity>
             </View>
+
+            {/* Wallet Section */}
+            <View className="mx-6 mb-6">
+                <View className="rounded-[24px] border border-white/15 bg-indigo-900/50 p-6 flex-row justify-between items-center overflow-hidden relative">
+                    <View className="absolute top-0 right-0 w-32 h-32 bg-sky-500/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+                    <View>
+                        <Text className="text-xs tracking-[0.3em] uppercase text-sky-400 mb-2 font-bold">My Wallet</Text>
+                        <View className="flex-row items-baseline">
+                            <Text className="text-3xl font-bold text-white">{walletBalance}</Text>
+                            <Text className="text-slate-400 ml-1">Tokens</Text>
+                        </View>
+                    </View>
+
+                    <TouchableOpacity
+                        className="bg-sky-500 px-4 py-2 rounded-xl flex-row items-center shadow-lg shadow-sky-500/20"
+                        onPress={() => setTopUpModalVisible(true)}
+                    >
+                        <Ionicons name="add-circle" size={20} color="#0f172a" />
+                        <Text className="text-slate-900 font-bold ml-1">Add</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            {/* Top Up Modal */}
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={topUpModalVisible}
+                onRequestClose={() => setTopUpModalVisible(false)}
+            >
+                <View className="flex-1 justify-center items-center bg-black/80 p-6">
+                    <View className="bg-slate-900 w-full rounded-2xl p-6 border border-white/10">
+                        <Text className="text-xl font-bold text-white mb-4">Top Up Wallet</Text>
+                        <Text className="text-slate-400 mb-4">Enter amount to add tokens (1 INR = 1 Token)</Text>
+
+                        <TextInput
+                            className="bg-slate-800 text-white p-4 rounded-xl border border-white/10 mb-6 text-xl font-bold text-center"
+                            placeholder="0"
+                            placeholderTextColor="#64748b"
+                            keyboardType="number-pad"
+                            autoFocus
+                            onChangeText={setTopUpAmount}
+                            value={topUpAmount}
+                        />
+
+                        <View className="flex-row gap-4">
+                            <TouchableOpacity
+                                className="flex-1 bg-slate-800 py-3 rounded-xl items-center"
+                                onPress={() => setTopUpModalVisible(false)}
+                            >
+                                <Text className="text-white font-bold">Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                className="flex-1 bg-sky-500 py-3 rounded-xl items-center"
+                                onPress={handleTopUp}
+                            >
+                                <Text className="text-slate-900 font-bold">Pay & Add</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             {/* Search & Filter */}
             <View className="px-6 pb-4 space-y-4">
