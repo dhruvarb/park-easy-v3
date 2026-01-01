@@ -49,6 +49,15 @@ export default function ParkingDetails() {
             try {
                 const data = await userApi.getSlot(id);
                 setSlot(data.slot);
+
+                // Auto-redirect if full and has nearby options
+                if (parseInt(data.slot.availableSlots) === 0 && data.slot.nearbyLots && data.slot.nearbyLots.length > 0) {
+                    const nearestBot = data.slot.nearbyLots[0];
+                    alert(`This parking lot is full. Redirecting you to the nearest available option: ${nearestBot.name}`);
+                    navigate(`/parking/${nearestBot.id}`, { replace: true });
+                    return;
+                }
+
                 const reviewsData = await userApi.getReviews(id);
                 setReviews(reviewsData.reviews);
             } catch (err) {
@@ -62,7 +71,7 @@ export default function ParkingDetails() {
         if (id) {
             fetchSlot();
         }
-    }, [id]);
+    }, [id, navigate]);
 
     const handleReviewSubmit = async () => {
         if (userRating === 0) return;
