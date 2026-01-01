@@ -80,14 +80,18 @@ export default function ParkingCard({ slot, onBook, filterDuration = "Hourly" })
           ))}
         </div>
         <button
-          onClick={() => onBook(slot)}
-          disabled={isFull}
+          onClick={() => {
+            if (isFull) {
+              alert("This parking lot is full. Redirecting you to nearby options...");
+            }
+            navigate(`/parking/${slot.id}`);
+          }}
           className={`mt-auto w-full font-semibold py-3 rounded-2xl transition-all ${isFull
-            ? "bg-gray-600 text-gray-400 cursor-not-allowed border border-white/5"
+            ? "bg-red-500/20 text-red-500 hover:bg-red-500/30 border border-red-500/30"
             : "bg-brandSky text-brandNight hover:bg-white"
             }`}
         >
-          {isFull ? "Fully Occupied" : "Book Slot"}
+          {isFull ? "Check Nearby Options" : "Book Slot"}
         </button>
       </div>
     </div>
