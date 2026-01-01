@@ -53,7 +53,7 @@ export default function ParkingDetails() {
                 // Auto-redirect if full and has nearby options
                 if (parseInt(data.slot.availableSlots) === 0 && data.slot.nearbyLots && data.slot.nearbyLots.length > 0) {
                     const nearestBot = data.slot.nearbyLots[0];
-                    alert(`This parking lot is full. Redirecting you to the nearest available option: ${nearestBot.name}`);
+                    alert(`All parking slots in Vidyanagar lots are booked. Redirecting you to the nearest available option: ${nearestBot.name}`);
                     navigate(`/parking/${nearestBot.id}`, { replace: true });
                     return;
                 }

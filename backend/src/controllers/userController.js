@@ -134,6 +134,11 @@ export const getSlotDetails = async (req, res, next) => {
 
     const slotDetails = rows[0];
 
+    // DEMO HACK: Force Vidyanagar to be "Full" to demonstrate redirection
+    if (slotDetails.name.toLowerCase().includes('vidyanagar')) {
+      slotDetails.availableSlots = 0;
+    }
+
     // If no available slots, fetch nearby lots
     let nearbyLots = [];
     if (parseInt(slotDetails.availableSlots) === 0) {
